@@ -112,13 +112,23 @@ export function TabEvaluasiHeadToHead({
   const availableRuns: Array<{ run_id: string; label: string }> =
     researchSummary?.available_runs || [];
   const activeRunId = selectedRunId || researchSummary?.run_id || "default";
-  const hasResearchOutput = availableRuns.length > 0 || comparison.length > 0;
+  const cloudPlotUrl: string | null =
+    researchSummary?.plot_urls?.[selectedExp]?.[plotType] || null;
+  const hasResearchOutput =
+    Boolean(cloudPlotUrl) || availableRuns.length > 0 || comparison.length > 0;
 
   const [plotBlobUrl, setPlotBlobUrl] = useState<string | null>(null);
   const [plotLoading, setPlotLoading] = useState<boolean>(false);
   const [plotError, setPlotError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (cloudPlotUrl) {
+      setPlotBlobUrl(null);
+      setPlotLoading(false);
+      setPlotError(null);
+      return;
+    }
+
     if (!hasResearchOutput) {
       setPlotBlobUrl(null);
       setPlotLoading(false);
@@ -167,7 +177,7 @@ export function TabEvaluasiHeadToHead({
         URL.revokeObjectURL(activeObjectUrl);
       }
     };
-  }, [selectedExp, plotType, activeRunId, hasResearchOutput]);
+  }, [selectedExp, plotType, activeRunId, hasResearchOutput, cloudPlotUrl]);
 
   const e1 =
     comparison.find((c) => c.experiment === "E1_MobileNetV3") || comparison[0] || null;
@@ -826,7 +836,17 @@ export function TabEvaluasiHeadToHead({
         {/* Plot Image Container */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="lg:col-span-8 p-3 rounded-md border-2 border-fg bg-slate-950 flex items-center justify-center min-h-[360px]">
-            {plotLoading ? (
+            {cloudPlotUrl && !plotError ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={cloudPlotUrl}
+                alt={`${selectedExp} ${plotType}`}
+                className="max-h-[500px] w-auto object-contain rounded"
+                onError={() =>
+                  setPlotError("Gagal memuat plot riset dari Supabase Storage.")
+                }
+              />
+            ) : plotLoading ? (
               <div className="text-slate-300 text-xs flex flex-col items-center gap-2">
                 <RefreshCw className="w-5 h-5 animate-spin text-accent" />
                 <span>Memuat plot riset...</span>
