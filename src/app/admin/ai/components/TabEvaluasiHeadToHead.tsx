@@ -112,12 +112,22 @@ export function TabEvaluasiHeadToHead({
   const availableRuns: Array<{ run_id: string; label: string }> =
     researchSummary?.available_runs || [];
   const activeRunId = selectedRunId || researchSummary?.run_id || "default";
+  const hasResearchOutput = availableRuns.length > 0 || comparison.length > 0;
 
   const [plotBlobUrl, setPlotBlobUrl] = useState<string | null>(null);
   const [plotLoading, setPlotLoading] = useState<boolean>(false);
   const [plotError, setPlotError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!hasResearchOutput) {
+      setPlotBlobUrl(null);
+      setPlotLoading(false);
+      setPlotError(
+        "Plot visualisasi belum tersedia di server. Klik 'Tarik Output Kaggle' pada tab Eksperimen Kaggle untuk mengunduh plot riset."
+      );
+      return;
+    }
+
     const controller = new AbortController();
     let activeObjectUrl: string | null = null;
     let cancelled = false;
@@ -157,7 +167,7 @@ export function TabEvaluasiHeadToHead({
         URL.revokeObjectURL(activeObjectUrl);
       }
     };
-  }, [selectedExp, plotType, activeRunId]);
+  }, [selectedExp, plotType, activeRunId, hasResearchOutput]);
 
   const e1 =
     comparison.find((c) => c.experiment === "E1_MobileNetV3") || comparison[0] || null;
