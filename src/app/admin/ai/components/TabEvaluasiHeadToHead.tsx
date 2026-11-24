@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/components/ui/toast";
@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { AIModel } from "@/types/api";
 import { downloadCsvFile } from "@/lib/utils/csv";
+import { ApiError, fetchAuthorizedMediaBlobUrl } from "@/lib/api";
 import { loadTfjs, loadCachedTfGraphModel, disposeTfModel } from "../hooks/useTfjsModel";
 
 function formatMetric(val?: number | null, digits = 2): string {
@@ -111,6 +112,52 @@ export function TabEvaluasiHeadToHead({
   const availableRuns: Array<{ run_id: string; label: string }> =
     researchSummary?.available_runs || [];
   const activeRunId = selectedRunId || researchSummary?.run_id || "default";
+
+  const [plotBlobUrl, setPlotBlobUrl] = useState<string | null>(null);
+  const [plotLoading, setPlotLoading] = useState<boolean>(false);
+  const [plotError, setPlotError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    let activeObjectUrl: string | null = null;
+    let cancelled = false;
+
+    setPlotLoading(true);
+    setPlotError(null);
+    setPlotBlobUrl(null);
+
+    const plotUrl = `/api/media/research-plot?exp=${selectedExp}&type=${plotType}&run_id=${encodeURIComponent(activeRunId)}`;
+    fetchAuthorizedMediaBlobUrl(plotUrl, controller.signal)
+      .then((objectUrl) => {
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        activeObjectUrl = objectUrl;
+        setPlotBlobUrl(objectUrl);
+      })
+      .catch((err: any) => {
+        if (err?.name === "AbortError" || cancelled) return;
+        if (err instanceof ApiError && err.status === 404) {
+          setPlotError(
+            "Plot visualisasi belum tersedia di server (unduh output training Kaggle terlebih dahulu)."
+          );
+        } else {
+          setPlotError(err?.message || "Gagal memuat visualisasi plot riset.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setPlotLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      if (activeObjectUrl) {
+        URL.revokeObjectURL(activeObjectUrl);
+      }
+    };
+  }, [selectedExp, plotType, activeRunId]);
 
   const e1 =
     comparison.find((c) => c.experiment === "E1_MobileNetV3") || comparison[0] || null;
@@ -769,13 +816,24 @@ export function TabEvaluasiHeadToHead({
         {/* Plot Image Container */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
           <div className="lg:col-span-8 p-3 rounded-md border-2 border-fg bg-slate-950 flex items-center justify-center min-h-[360px]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={`/api/media/research-plot?exp=${selectedExp}&type=${plotType}&run_id=${encodeURIComponent(activeRunId)}`}
-              alt={`${selectedExp} ${plotType}`}
-              className="max-h-[500px] w-auto object-contain rounded"
-              loading="lazy"
-            />
+            {plotLoading ? (
+              <div className="text-slate-300 text-xs flex flex-col items-center gap-2">
+                <RefreshCw className="w-5 h-5 animate-spin text-accent" />
+                <span>Memuat plot riset...</span>
+              </div>
+            ) : plotBlobUrl ? (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={plotBlobUrl}
+                alt={`${selectedExp} ${plotType}`}
+                className="max-h-[500px] w-auto object-contain rounded"
+              />
+            ) : (
+              <div className="text-slate-400 text-xs text-center max-w-sm space-y-2 p-4">
+                <AlertTriangle className="w-6 h-6 mx-auto text-amber-400" />
+                <p>{plotError || "Visualisasi plot riset belum tersedia."}</p>
+              </div>
+            )}
           </div>
 
           {/* Right: Error summary / Confusion analysis */}

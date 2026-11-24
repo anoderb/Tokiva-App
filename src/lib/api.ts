@@ -59,7 +59,7 @@ export class ApiError extends Error {
   details?: unknown;
 
   constructor(message: string, status: number, code?: string, details?: unknown) {
-    super(message);
+    super(typeof message === 'string' && message ? message : 'Terjadi kesalahan permintaan');
     this.name = 'ApiError';
     this.status = status;
     this.code = code;
@@ -109,7 +109,7 @@ interface RequestOptions extends Omit<RequestInit, 'body'> {
   skipCache?: boolean;
 }
 
-function resolveApiBaseUrl(): string {
+export function resolveApiBaseUrl(): string {
   const configured = (process.env.NEXT_PUBLIC_API_URL || '/api').replace(/\/+$/, '');
   if (
     configured === '/api' &&
@@ -120,6 +120,100 @@ function resolveApiBaseUrl(): string {
     return `http://${window.location.hostname}:5000/api`;
   }
   return configured;
+}
+
+export function resolveApiMediaUrl(url?: string | null): string | null {
+  if (!url) return null;
+  if (url.startsWith('data:') || url.startsWith('blob:')) {
+    return url;
+  }
+  const baseUrl = resolveApiBaseUrl();
+  if (url.startsWith('https://huggingface.co/datasets/')) {
+    return `${baseUrl}/media/hf-proxy?url=${encodeURIComponent(url)}`;
+  }
+  if (url.startsWith('/api/')) {
+    return `${baseUrl.replace(/\/api$/, '')}${url}`;
+  }
+  return url;
+}
+
+export function isProtectedApiMediaUrl(resolvedUrl: string): boolean {
+  if (!resolvedUrl) return false;
+  const hasSignature = /[?&]sig=/.test(resolvedUrl);
+  if (hasSignature) return false;
+  return (
+    resolvedUrl.includes('/api/media/research-plot') ||
+    resolvedUrl.includes('/api/media/hf-proxy')
+  );
+}
+
+export async function fetchAuthorizedMediaBlobUrl(
+  urlOrPath: string,
+  signal?: AbortSignal
+): Promise<string> {
+  const resolvedUrl = resolveApiMediaUrl(urlOrPath);
+  if (!resolvedUrl) {
+    throw new ApiError('URL media tidak tersedia', 400);
+  }
+  const token = getStoredToken();
+  let response: Response;
+  try {
+    response = await fetch(resolvedUrl, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      credentials: 'include',
+      signal,
+    });
+  } catch (err: any) {
+    if (err?.name === 'AbortError') throw err;
+    throw new ApiError(
+      'Tidak dapat terhubung ke server API saat memuat media.',
+      0
+    );
+  }
+
+  if (!response.ok) {
+    throw new ApiError(`Gagal memuat media (HTTP ${response.status})`, response.status);
+  }
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+function friendlyHttpFallbackMessage(status: number): string {
+  if (status === 502 || status === 503 || status === 504) {
+    return `Server API sedang tidak dapat dijangkau (HTTP ${status}). Coba lagi beberapa saat.`;
+  }
+  if (status === 404) {
+    return 'Endpoint API tidak ditemukan (HTTP 404). Periksa konfigurasi server.';
+  }
+  return `Permintaan gagal dengan kode status ${status}`;
+}
+
+function extractErrorMessage(payload: unknown, status: number): string {
+  const obj = payload && typeof payload === 'object' ? (payload as Record<string, any>) : null;
+  const candidates: unknown[] = [
+    obj?.message,
+    obj?.error?.message,
+    typeof obj?.error === 'string' ? obj.error : undefined,
+    obj?.message?.message,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string') {
+      const trimmed = candidate.trim();
+      if (!trimmed) continue;
+      if (
+        trimmed.startsWith('<') ||
+        trimmed.toLowerCase().includes('<!doctype') ||
+        trimmed.toLowerCase().includes('<html')
+      ) {
+        return friendlyHttpFallbackMessage(status);
+      }
+      return trimmed;
+    }
+  }
+
+  return friendlyHttpFallbackMessage(status);
 }
 
 function buildUrl(endpoint: string, params?: RequestOptions['params']): string {
@@ -184,18 +278,27 @@ export async function apiFetch<T = unknown>(
       headers['Authorization'] = `Bearer ${token}`;
     }
 
-    const response = await fetch(url, {
-      ...rest,
-      method,
-      headers,
-      credentials: 'include',
-      body:
-        body === undefined
-          ? undefined
-          : body instanceof FormData
-          ? body
-          : JSON.stringify(body),
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        ...rest,
+        method,
+        headers,
+        credentials: 'include',
+        body:
+          body === undefined
+            ? undefined
+            : body instanceof FormData
+            ? body
+            : JSON.stringify(body),
+      });
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err;
+      throw new ApiError(
+        'Tidak dapat terhubung ke server API. Periksa koneksi internet atau status server.',
+        0
+      );
+    }
 
     let payload: any = null;
     const contentType = response.headers.get('content-type') || '';
@@ -219,11 +322,14 @@ export async function apiFetch<T = unknown>(
         setStoredToken(null);
         setCachedSession(null);
       }
-      const message =
-        payload?.message ||
-        payload?.error ||
-        `Permintaan gagal dengan kode status ${response.status}`;
-      throw new ApiError(message, response.status, payload?.code, payload?.errors);
+      const message = extractErrorMessage(payload, response.status);
+      const errCode =
+        typeof payload?.code === 'string'
+          ? payload.code
+          : typeof payload?.error?.code === 'string'
+          ? payload.error.code
+          : undefined;
+      throw new ApiError(message, response.status, errCode, payload?.errors);
     }
 
     const resultData = (payload && 'data' in payload ? payload.data : payload) as T;

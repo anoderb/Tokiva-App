@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
 import { DatasetPhotoStudio, type DatasetPhotoItem } from "@/components/shared/dataset-photo-studio";
+import { ProductImage } from "@/components/shared/product-image";
 import { formatRupiah } from "@/lib/format";
 import type { Kategori, Produk, ProdukMaster, ProdukSatuan } from "@/types/api";
 import type { NewSatuanDraft, OwnerProdukFormState } from "./produk-types";
@@ -184,8 +185,7 @@ export function ProdukFormModal(props: ProdukFormModalProps) {
             <div className="flex items-center gap-3 min-w-0">
               {formData.foto_url ? (
                 <div className="relative group w-14 h-14 rounded-md border-2 border-fg overflow-hidden shrink-0 bg-muted shadow-pop-soft">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={formData.foto_url} alt="Sampul" className="w-full h-full object-cover" />
+                  <ProductImage src={formData.foto_url} alt="Sampul" className="w-full h-full object-cover" />
                 </div>
               ) : (
                 <div className="w-14 h-14 rounded-md border-2 border-dashed border-fg/40 flex flex-col items-center justify-center shrink-0 bg-muted text-muted-fg">

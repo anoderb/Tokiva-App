@@ -10,7 +10,7 @@ import React, {
 } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { authService } from "@/lib/services/auth.service";
-import { getCachedSession, getStoredToken, setStoredToken } from "@/lib/api";
+import { ApiError, getCachedSession, getStoredToken, setStoredToken } from "@/lib/api";
 import type { Pengguna, Toko } from "@/types/api";
 
 interface AuthContextValue {
@@ -69,10 +69,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await authService.getMe();
       setUser(res.user);
       setToko(res.toko);
-    } catch {
-      setStoredToken(null);
-      setUser(null);
-      setToko(null);
+    } catch (error) {
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+        setStoredToken(null);
+        setUser(null);
+        setToko(null);
+      } else {
+        const cached = getCachedSession<{ user: Pengguna; toko: Toko | null }>();
+        if (cached?.user) {
+          setUser(cached.user);
+          setToko(cached.toko);
+        } else {
+          setUser(null);
+          setToko(null);
+        }
+      }
     } finally {
       setIsLoading(false);
     }

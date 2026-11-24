@@ -25,7 +25,10 @@ const nextConfig = {
     ],
   },
   async rewrites() {
-    const backendUrl = process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:5000';
+    const backendUrl = (process.env.BACKEND_INTERNAL_URL || 'http://127.0.0.1:5000')
+      .trim()
+      .replace(/\/+$/, '')
+      .replace(/\/api$/, '');
     return [
       {
         source: '/api/:path*',

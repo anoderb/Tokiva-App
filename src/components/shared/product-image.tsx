@@ -3,6 +3,11 @@
 import { useState, useMemo, useEffect } from "react";
 import { Package } from "lucide-react";
 import { cn } from "@/lib/cn";
+import {
+  fetchAuthorizedMediaBlobUrl,
+  isProtectedApiMediaUrl,
+  resolveApiMediaUrl,
+} from "@/lib/api";
 
 interface ProductImageProps {
   src?: string | null;
@@ -22,11 +27,7 @@ const SIZE_CLASSES: Record<NonNullable<ProductImageProps["size"]>, string> = {
 };
 
 export function normalizeMediaUrl(url?: string | null): string | null {
-  if (!url) return null;
-  if (url.startsWith("https://huggingface.co/datasets/")) {
-    return `/api/media/hf-proxy?url=${encodeURIComponent(url)}`;
-  }
-  return url;
+  return resolveApiMediaUrl(url);
 }
 
 export function ProductImage({
@@ -39,15 +40,48 @@ export function ProductImage({
   iconClassName,
 }: ProductImageProps) {
   const [hasError, setHasError] = useState(false);
+  const [blobSrc, setBlobSrc] = useState<string | null>(null);
   const resolvedSrc = useMemo(() => normalizeMediaUrl(src ?? fotoUrl ?? null), [src, fotoUrl]);
+  const needsAuthFetch = Boolean(resolvedSrc && isProtectedApiMediaUrl(resolvedSrc));
 
   useEffect(() => {
     setHasError(false);
-  }, [resolvedSrc]);
+    setBlobSrc(null);
+
+    if (!resolvedSrc || !needsAuthFetch) return;
+
+    const controller = new AbortController();
+    let activeObjectUrl: string | null = null;
+    let cancelled = false;
+
+    fetchAuthorizedMediaBlobUrl(resolvedSrc, controller.signal)
+      .then((objectUrl) => {
+        if (cancelled) {
+          URL.revokeObjectURL(objectUrl);
+          return;
+        }
+        activeObjectUrl = objectUrl;
+        setBlobSrc(objectUrl);
+      })
+      .catch((err: any) => {
+        if (err?.name === "AbortError" || cancelled) return;
+        setHasError(true);
+      });
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      if (activeObjectUrl) {
+        URL.revokeObjectURL(activeObjectUrl);
+      }
+    };
+  }, [resolvedSrc, needsAuthFetch]);
+
   const resolvedAlt = alt ?? nama ?? "Produk";
   const sizeClass = size ? SIZE_CLASSES[size] : "";
+  const displaySrc = needsAuthFetch ? blobSrc : resolvedSrc;
 
-  if (resolvedSrc && !hasError) {
+  if (displaySrc && !hasError) {
     return (
       <div
         className={cn(
@@ -58,7 +92,7 @@ export function ProductImage({
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={resolvedSrc}
+          src={displaySrc}
           alt={resolvedAlt}
           className="w-full h-full object-cover"
           onError={() => setHasError(true)}
