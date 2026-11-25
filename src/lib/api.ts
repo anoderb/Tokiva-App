@@ -366,6 +366,8 @@ export const api = {
     apiFetch<T>(endpoint, { method: 'POST', body, params }),
   put: <T = unknown>(endpoint: string, body?: unknown, params?: RequestOptions['params']) =>
     apiFetch<T>(endpoint, { method: 'PUT', body, params }),
+  patch: <T = unknown>(endpoint: string, body?: unknown, params?: RequestOptions['params']) =>
+    apiFetch<T>(endpoint, { method: 'PATCH', body, params }),
   delete: <T = unknown>(endpoint: string, params?: RequestOptions['params']) =>
     apiFetch<T>(endpoint, { method: 'DELETE', params }),
 };

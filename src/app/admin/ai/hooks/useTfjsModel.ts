@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import type * as TfType from "@tensorflow/tfjs";
+import { extractDualModelOutputs } from "@/lib/ai/hybrid-embedding";
 
 let cachedTfPromise: Promise<typeof TfType> | null = null;
 
@@ -32,6 +33,7 @@ export interface PredictionResult {
 
 export interface InferenceOutput {
   predictions: PredictionResult[];
+  embedding?: number[] | null;
   ms: number;
   topLabel: string;
   topConfidence: number;
@@ -199,7 +201,8 @@ export function useTfjsModel(cachePrefix = "tokiva-admin-model") {
   const predict = useCallback(
     async (
       element: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
-      threshold = 0.75
+      threshold = 0.75,
+      expectedEmbeddingDim = 256
     ): Promise<InferenceOutput | null> => {
       const m = modelRef.current;
       if (!m || !element) return null;
@@ -211,18 +214,18 @@ export function useTfjsModel(cachePrefix = "tokiva-admin-model") {
         const tf = await loadTfjs();
         input = preprocess(tf, element);
         outputRaw = m.predict(input);
-        const output = (
-          Array.isArray(outputRaw) ? outputRaw[0] : outputRaw
-        ) as TfType.Tensor;
-
-        const probs = await output.data();
+        const labels = classesRef.current;
+        const { probs, embedding } = extractDualModelOutputs(
+          outputRaw,
+          labels.length,
+          expectedEmbeddingDim
+        );
         input.dispose();
         input = null;
         disposeTensorOutput(outputRaw);
         outputRaw = null;
 
-        const labels = classesRef.current;
-        const predictions: PredictionResult[] = Array.from(probs as Float32Array)
+        const predictions: PredictionResult[] = probs
           .map((score, i) => ({
             label: labels[i] || `Kelas_${i}`,
             score: Number(score),
@@ -234,6 +237,7 @@ export function useTfjsModel(cachePrefix = "tokiva-admin-model") {
 
         return {
           predictions,
+          embedding,
           ms,
           topLabel: top.label,
           topConfidence: top.score,

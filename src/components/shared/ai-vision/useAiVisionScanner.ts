@@ -18,7 +18,7 @@ import {
   resetCameraConsent,
   type CameraStatus,
 } from "@/lib/utils/camera";
-import type { AIKelas, AIModel, Produk, ProdukSatuan } from "@/types/api";
+import type { AIKelas, AIKelasEmbedding, AIModel, Produk, ProdukSatuan } from "@/types/api";
 import {
   COOLDOWN_SAME_ITEM_MS,
   type AiDetectionCandidate,
@@ -69,6 +69,8 @@ export function useAiVisionScanner({
   const labelsRef = useRef<string[]>([]);
   const modelMetaRef = useRef<AIModel | null>(null);
   const kelasListRef = useRef<AIKelas[]>([]);
+  const storeEmbeddingsRef = useRef<AIKelasEmbedding[]>([]);
+  const classCentroidsRef = useRef<Record<string, { centroid: number[]; mean_sim?: number; min_sim?: number }> | null>(null);
   const productsRef = useRef<Produk[]>(products);
   const isMutedRef = useRef<boolean>(false);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -118,6 +120,8 @@ export function useAiVisionScanner({
     lastScannedTimeRef.current = 0;
     emptyFrameCountRef.current = 0;
     consecutiveHitsRef.current = { id: "", count: 0 };
+    storeEmbeddingsRef.current = [];
+    classCentroidsRef.current = null;
 
     let isMounted = true;
     setLoadingModel(true);
@@ -135,9 +139,44 @@ export function useAiVisionScanner({
             Array.isArray(meta.labels) && meta.labels.length > 0
               ? meta.labels
               : Array.isArray((meta as any).daftar_kelas)
-              ? (meta as any).daftar_kelas
-              : [];
+                ? (meta as any).daftar_kelas
+                : [];
           labelsRef.current = rawLabels;
+
+          // Muat prototipe embedding toko & centroids model jika aktif model v2 Hybrid
+          const isHybridEnabled =
+            Boolean(meta.mendukung_embedding) &&
+            meta.threshold_config?.enable_hybrid_embedding !== false;
+          if (isHybridEnabled) {
+            void aiService
+              .getStoreEmbeddings("kasir", meta.versi)
+              .then((embs) => {
+                if (isMounted) storeEmbeddingsRef.current = embs || [];
+              })
+              .catch(() => {
+                if (isMounted) storeEmbeddingsRef.current = [];
+              });
+            if (meta.path_centroids) {
+              void fetch(meta.path_centroids)
+                .then((r) => (r.ok ? r.json() : null))
+                .then((centJson) => {
+                    const centMap =
+                      centJson &&
+                        typeof centJson === "object" &&
+                        "classes" in centJson &&
+                        centJson.classes &&
+                        typeof centJson.classes === "object"
+                        ? centJson.classes
+                        : centJson;
+                    if (isMounted && centMap && typeof centMap === "object") {
+                      classCentroidsRef.current = centMap;
+                    }
+                  })
+                .catch(() => {
+                  if (isMounted) classCentroidsRef.current = null;
+                });
+            }
+          }
 
           const modelUrl = meta.model_json_url || (meta as any).path_model_json || (meta as any).model_url;
           if (modelUrl) {
@@ -300,7 +339,14 @@ export function useAiVisionScanner({
       classLabel: string,
       kelasId?: string,
       targetUnit: ProdukSatuan | "base" = "base",
-      correctionMeta?: { predictedKelasId?: string; predictedConfidence?: number; isCorrection?: boolean; snapshotOverride?: string | null; skipLog?: boolean }
+      correctionMeta?: {
+        predictedKelasId?: string;
+        predictedConfidence?: number;
+        isCorrection?: boolean;
+        snapshotOverride?: string | null;
+        skipLog?: boolean;
+        detectionMethod?: "softmax" | "embedding";
+      }
     ) => {
       playScannerBeep("success", isMutedRef.current);
       setScanFlash(true);
@@ -352,6 +398,7 @@ export function useAiVisionScanner({
             diterima_kasir: !isCorrection,
             produk_id_asli: product.id,
             butuh_koreksi: isCorrection,
+            metode_deteksi: correctionMeta?.detectionMethod || "softmax",
             foto_cuplikan: snapshotDataUrl,
           })
           .catch((err) => console.error("Gagal mencatat log inferensi POS:", err));
@@ -378,6 +425,13 @@ export function useAiVisionScanner({
             tfModule: tfModuleRef.current,
             kelasList: kelasListRef.current,
             products: productsRef.current,
+            storeEmbeddings: storeEmbeddingsRef.current,
+            enableHybridEmbedding:
+              Boolean(modelMetaRef.current?.mendukung_embedding) &&
+              modelMetaRef.current?.threshold_config?.enable_hybrid_embedding !== false,
+            embeddingMinSimilarity: modelMetaRef.current?.threshold_config?.embedding_min_similarity ?? 78,
+            expectedEmbeddingDim: modelMetaRef.current?.dimensi_embedding || 256,
+            classCentroids: classCentroidsRef.current,
           });
           if (res && isSubscribed) {
             tfModuleRef.current = res.tfModule;
@@ -385,8 +439,14 @@ export function useAiVisionScanner({
             const top = res.candidates[0] || null;
             setLiveCandidate(top);
             const now = Date.now();
+            const isEmbeddingHit = top?.detectionMethod === "embedding";
+            const allowAutoAddTier1 =
+              Boolean(top) &&
+              !isEmbeddingHit &&
+              top.confidence >= highThreshold * 100 &&
+              (modelMetaRef.current?.threshold_config?.auto_add_high_confidence ?? true);
 
-            if (top && top.confidence >= highThreshold * 100) {
+            if (top && allowAutoAddTier1) {
               emptyFrameCountRef.current = 0;
               consecutiveHitsRef.current =
                 consecutiveHitsRef.current.id === top.product.id
@@ -403,9 +463,11 @@ export function useAiVisionScanner({
                 setCooldownSec(0);
                 consecutiveHitsRef.current = { id: top.product.id, count: 0 };
                 setAlternativePicks([]);
-                triggerSuccessfulScan(top.product, top.confidence, top.classLabel, top.kelasId);
+                triggerSuccessfulScan(top.product, top.confidence, top.classLabel, top.kelasId, "base", {
+                  detectionMethod: "softmax",
+                });
               }
-            } else if (top && top.confidence >= mediumThreshold * 100) {
+            } else if (top && (isEmbeddingHit || top.confidence >= mediumThreshold * 100)) {
               setAlternativePicks(res.candidates.slice(0, 3));
               setCooldownSec(0);
             } else {
@@ -489,11 +551,25 @@ export function useAiVisionScanner({
             tfModule: tfModuleRef.current,
             kelasList: kelasListRef.current,
             products: productsRef.current,
+            storeEmbeddings: storeEmbeddingsRef.current,
+            enableHybridEmbedding:
+              Boolean(modelMetaRef.current?.mendukung_embedding) &&
+              modelMetaRef.current?.threshold_config?.enable_hybrid_embedding !== false,
+            embeddingMinSimilarity: modelMetaRef.current?.threshold_config?.embedding_min_similarity ?? 78,
+            expectedEmbeddingDim: modelMetaRef.current?.dimensi_embedding || 256,
+            classCentroids: classCentroidsRef.current,
           });
           if (res) tfModuleRef.current = res.tfModule;
           if (res && res.candidates.length > 0) {
             const top = res.candidates[0];
-            triggerSuccessfulScan(top.product, top.confidence, top.classLabel, top.kelasId);
+            if (top.detectionMethod === "embedding") {
+              setLiveCandidate(top);
+              setAlternativePicks(res.candidates.slice(0, 3));
+            } else {
+              triggerSuccessfulScan(top.product, top.confidence, top.classLabel, top.kelasId, "base", {
+                detectionMethod: top.detectionMethod || "softmax",
+              });
+            }
           } else {
             setErrorMsg("Kemasan produk tidak cocok dengan kelas model terlatih.");
           }

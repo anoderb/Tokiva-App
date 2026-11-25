@@ -75,67 +75,78 @@ export function KaggleAutomationPanel({
           <span>Aktifkan Pelatihan Otomatis GPU T4x2</span>
         </label>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <div>
-            <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Pemicu Otomatis</label>
-            <select
-              value={trainForm.mode}
-              onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, mode: e.target.value as "daily" | "interval" | "on_new_dataset" }))}
-              className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-semibold"
-            >
-              <option value="on_new_dataset">Otomatis Setelah Dataset Baru Disinkron</option>
-              <option value="daily">Jam Harian (WIB)</option>
-              <option value="interval">Setiap N Jam</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Min. Sampel Baru (Delta Gate)</label>
-            <input
-              type="number"
-              min={0}
-              max={10000}
-              value={trainForm.min_new_samples}
-              onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, min_new_samples: Math.max(0, Number(e.target.value) || 0) }))}
-              className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold"
-            />
-          </div>
-        </div>
-
-        {(trainForm.mode === "daily" || trainForm.mode === "interval") && (
-          <div className="grid grid-cols-2 gap-2">
-            {trainForm.mode === "daily" ? (
-              <div>
-                <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Jam (0–23 WIB)</label>
-                <input type="number" min={0} max={23} value={trainForm.hour} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, hour: Math.min(23, Math.max(0, Number(e.target.value) || 0)) }))} className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold" />
-              </div>
-            ) : (
-              <div>
-                <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Interval (Jam)</label>
-                <input type="number" min={1} max={24} value={trainForm.interval_hours} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, interval_hours: Math.min(24, Math.max(1, Number(e.target.value) || 1)) }))} className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold" />
-              </div>
-            )}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <div>
-              <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Menit (0–59)</label>
-              <input type="number" min={0} max={59} value={trainForm.minute} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, minute: Math.min(59, Math.max(0, Number(e.target.value) || 0)) }))} className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold" />
+              <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Target Track</label>
+              <select
+                value={trainForm.target_track || "v1"}
+                onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, target_track: e.target.value as "v1" | "v2" }))}
+                className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-bold"
+              >
+                <option value="v1">v1 — Classic (Softmax)</option>
+                <option value="v2">v2 — Hybrid (Embedding)</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Pemicu Otomatis</label>
+              <select
+                value={trainForm.mode}
+                onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, mode: e.target.value as "daily" | "interval" | "on_new_dataset" }))}
+                className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-semibold"
+              >
+                <option value="on_new_dataset">Otomatis Setelah Dataset Baru Disinkron</option>
+                <option value="daily">Jam Harian (WIB)</option>
+                <option value="interval">Setiap N Jam</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Min. Sampel Baru (Delta Gate)</label>
+              <input
+                type="number"
+                min={0}
+                max={10000}
+                value={trainForm.min_new_samples}
+                onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, min_new_samples: Math.max(0, Number(e.target.value) || 0) }))}
+                className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold"
+              />
             </div>
           </div>
-        )}
 
-        <label className="flex items-center gap-2 cursor-pointer text-[11px]">
-          <input type="checkbox" checked={trainForm.auto_activate_if_better} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, auto_activate_if_better: e.target.checked }))} className="w-3.5 h-3.5 accent-admin" />
-          <span>Auto-aktifkan model baru ke POS jika akurasi &ge; model aktif saat ini</span>
-        </label>
+          {(trainForm.mode === "daily" || trainForm.mode === "interval") && (
+            <div className="grid grid-cols-2 gap-2">
+              {trainForm.mode === "daily" ? (
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Jam (0–23 WIB)</label>
+                  <input type="number" min={0} max={23} value={trainForm.hour} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, hour: Math.min(23, Math.max(0, Number(e.target.value) || 0)) }))} className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold" />
+                </div>
+              ) : (
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Interval (Jam)</label>
+                  <input type="number" min={1} max={24} value={trainForm.interval_hours} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, interval_hours: Math.min(24, Math.max(1, Number(e.target.value) || 1)) }))} className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold" />
+                </div>
+              )}
+              <div>
+                <label className="text-[10px] font-bold uppercase text-muted-fg block mb-1">Menit (0–59)</label>
+                <input type="number" min={0} max={59} value={trainForm.minute} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, minute: Math.min(59, Math.max(0, Number(e.target.value) || 0)) }))} className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono font-bold" />
+              </div>
+            </div>
+          )}
 
-        <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-          <Button type="button" size="sm" variant="outline" onClick={() => onRunTrainDeltaCheck(false)} disabled={isTriggeringAutoTrain || trainStatus === "running" || trainStatus === "processing"} className="text-xs font-bold">
-            <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isTriggeringAutoTrain ? "animate-spin" : ""}`} />
-            Uji Cek Delta Training
-          </Button>
-          <Button type="button" size="sm" variant="admin" onClick={onSaveTrainConfig} disabled={isSavingTrain} className="text-xs font-bold">
-            <Save className="w-3.5 h-3.5 mr-1" />{isSavingTrain ? "Menyimpan..." : "Simpan Jadwal Training"}
-          </Button>
+          <label className="flex items-center gap-2 cursor-pointer text-[11px]">
+            <input type="checkbox" checked={trainForm.auto_activate_if_better} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, auto_activate_if_better: e.target.checked }))} className="w-3.5 h-3.5 accent-admin" />
+            <span>Auto-aktifkan model baru ke POS jika akurasi &ge; model aktif saat ini</span>
+          </label>
+
+          <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+            <Button type="button" size="sm" variant="outline" onClick={() => onRunTrainDeltaCheck(false)} disabled={isTriggeringAutoTrain || trainStatus === "running" || trainStatus === "processing"} className="text-xs font-bold">
+              <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isTriggeringAutoTrain ? "animate-spin" : ""}`} />
+              Uji Cek Delta Training
+            </Button>
+            <Button type="button" size="sm" variant="admin" onClick={onSaveTrainConfig} disabled={isSavingTrain} className="text-xs font-bold">
+              <Save className="w-3.5 h-3.5 mr-1" />{isSavingTrain ? "Menyimpan..." : "Simpan Jadwal Training"}
+            </Button>
+          </div>
         </div>
       </div>
-    </div>
-  );
+      );
 }

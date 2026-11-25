@@ -1,5 +1,10 @@
 import { loadTfjs } from "@/app/admin/ai/hooks/useTfjsModel";
-import type { AIKelas, Produk } from "@/types/api";
+import {
+  cosineSimilarity,
+  extractDualModelOutputs,
+  matchEmbeddingPrototypes,
+} from "@/lib/ai/hybrid-embedding";
+import type { AIKelas, AIKelasEmbedding, Produk } from "@/types/api";
 import type { AiDetectionCandidate } from "./ai-vision-types";
 
 /** Mencocokkan label prediksi model AI dengan katalog produk toko yang sedang aktif. */
@@ -65,7 +70,18 @@ export function matchAiLabelToProduct(
   return { product: bestProd, kelas: matchedKelas };
 }
 
-/** Menjalankan inferensi gambar TFJS 224x224 dan mengembalikan top-3 kandidat produk unik. */
+function disposePredictionOutput(out: any) {
+  if (!out) return;
+  if (typeof out.dispose === "function") {
+    out.dispose();
+  } else if (Array.isArray(out)) {
+    out.forEach((t) => t?.dispose?.());
+  } else if (typeof out === "object") {
+    Object.values(out).forEach((t: any) => t?.dispose?.());
+  }
+}
+
+/** Menjalankan inferensi gambar TFJS 224x224 (v1 Softmax / v2 Dual-Output Hybrid) dan mengembalikan top-3 kandidat unik. */
 export async function runVisionPrediction({
   imgSource,
   model,
@@ -73,6 +89,11 @@ export async function runVisionPrediction({
   tfModule,
   kelasList,
   products,
+  storeEmbeddings,
+  enableHybridEmbedding = false,
+  embeddingMinSimilarity = 78,
+  expectedEmbeddingDim = 256,
+  classCentroids = null,
 }: {
   imgSource: HTMLVideoElement | HTMLImageElement;
   model: any;
@@ -80,19 +101,33 @@ export async function runVisionPrediction({
   tfModule: any;
   kelasList: AIKelas[];
   products: Produk[];
+  storeEmbeddings?: AIKelasEmbedding[];
+  enableHybridEmbedding?: boolean;
+  embeddingMinSimilarity?: number;
+  expectedEmbeddingDim?: number;
+  classCentroids?: Record<string, { centroid: number[]; mean_sim?: number; min_sim?: number }> | null;
 }): Promise<{ candidates: AiDetectionCandidate[]; ms: number; tfModule: any } | null> {
   if (!model) return null;
   const t0 = performance.now();
+  let inputTensor: any = null;
+  let predOutput: any = null;
   try {
     const tf = tfModule || (await loadTfjs());
-    const probs: number[] = tf.tidy(() => {
+    inputTensor = tf.tidy(() => {
       const raw = tf.browser.fromPixels(imgSource);
       const resized = tf.image.resizeBilinear(raw, [224, 224]);
-      const tensor = resized.toFloat().expandDims(0);
-      const pred = model.predict(tensor);
-      const outTensor = Array.isArray(pred) ? pred[0] : pred;
-      return Array.from(outTensor.dataSync() as Float32Array);
+      return resized.toFloat().expandDims(0);
     });
+    predOutput = model.predict(inputTensor);
+    const { probs, embedding } = extractDualModelOutputs(
+      predOutput,
+      rawClasses.length,
+      expectedEmbeddingDim
+    );
+    inputTensor?.dispose?.();
+    inputTensor = null;
+    disposePredictionOutput(predOutput);
+    predOutput = null;
 
     const effectiveClasses =
       rawClasses.length > 0 ? rawClasses : Array.from({ length: probs.length }, (_, i) => `Kelas_${i}`);
@@ -102,20 +137,85 @@ export async function runVisionPrediction({
       .sort((a, b) => b.prob - a.prob)
       .slice(0, 5);
 
-    const usedProductIds = new Set<string>();
-    const topCandidates: AiDetectionCandidate[] = [];
-
+    const softmaxCandidates: AiDetectionCandidate[] = [];
+    const seenSoftmaxProductIds = new Set<string>();
     for (const item of indexed) {
       const { product, kelas } = matchAiLabelToProduct(item.label, kelasList, products);
-      if (product && !usedProductIds.has(product.id)) {
-        usedProductIds.add(product.id);
+      if (product && !seenSoftmaxProductIds.has(product.id)) {
+        seenSoftmaxProductIds.add(product.id);
         const conf = Math.min(99.9, Math.max(1, Number((item.prob * 100).toFixed(1))));
-        topCandidates.push({
+        softmaxCandidates.push({
           product,
           confidence: conf,
           classLabel: item.label,
           kelasId: kelas?.id || product.ai_kelas_id || undefined,
+          detectionMethod: "softmax",
         });
+      }
+      if (softmaxCandidates.length >= 3) break;
+    }
+
+    let embeddingCandidates: AiDetectionCandidate[] = [];
+    let preferEmbeddingFirst = false;
+
+    if (
+      enableHybridEmbedding &&
+      embedding &&
+      embedding.length > 0 &&
+      Array.isArray(storeEmbeddings) &&
+      storeEmbeddings.length > 0
+    ) {
+      const minSimRatio =
+        embeddingMinSimilarity > 1 ? embeddingMinSimilarity / 100 : embeddingMinSimilarity;
+      const embHits = matchEmbeddingPrototypes({
+        queryEmbedding: embedding,
+        storeEmbeddings,
+        products,
+        minSimilarityRatio: Math.max(0.5, Math.min(0.95, minSimRatio)),
+      });
+
+      embeddingCandidates = embHits
+        .filter((hit): hit is typeof hit & { product: Produk } => Boolean(hit.product))
+        .map((hit) => ({
+          product: hit.product,
+          confidence: hit.confidence,
+          classLabel: hit.classLabel,
+          kelasId: hit.kelasId || hit.product.ai_kelas_id || undefined,
+          detectionMethod: "embedding" as const,
+        }));
+
+      if (embHits.length > 0 && embeddingCandidates.length > 0) {
+        const topEmbedHit = embHits[0];
+        const topSoftmaxItem = indexed[0];
+        const centroidLookup =
+          (classCentroids as any)?.classes && typeof (classCentroids as any).classes === "object"
+            ? (classCentroids as any).classes
+            : classCentroids;
+        const topSoftmaxCentroid = topSoftmaxItem
+            ? centroidLookup?.[topSoftmaxItem.label]?.centroid
+            : undefined;
+        const simToTrainedCentroid =
+          topSoftmaxCentroid && topSoftmaxCentroid.length === embedding.length
+            ? cosineSimilarity(embedding, topSoftmaxCentroid)
+            : null;
+
+        preferEmbeddingFirst =
+          softmaxCandidates.length === 0 ||
+          (topSoftmaxItem?.prob ?? 0) < 0.75 ||
+          (simToTrainedCentroid !== null && topEmbedHit.similarity > simToTrainedCentroid + 0.05);
+      }
+    }
+
+    const usedProductIds = new Set<string>();
+    const topCandidates: AiDetectionCandidate[] = [];
+    const orderedSources = preferEmbeddingFirst
+      ? [...embeddingCandidates, ...softmaxCandidates]
+      : [...softmaxCandidates, ...embeddingCandidates];
+
+    for (const cand of orderedSources) {
+      if (!usedProductIds.has(cand.product.id)) {
+        usedProductIds.add(cand.product.id);
+        topCandidates.push(cand);
       }
       if (topCandidates.length >= 3) break;
     }
@@ -124,5 +224,12 @@ export async function runVisionPrediction({
   } catch (inferErr) {
     console.error("Gagal inferensi:", inferErr);
     return null;
+  } finally {
+    try {
+      inputTensor?.dispose?.();
+      disposePredictionOutput(predOutput);
+    } catch {
+      // ignore cleanup error
+    }
   }
 }

@@ -1,5 +1,5 @@
 import { api } from '../api';
-import type { AIKelas, AIModel, AISampel, PaginatedResponse } from '@/types/api';
+import type { AIKelas, AIKelasEmbedding, AIModel, AISampel, PaginatedResponse } from '@/types/api';
 
 export interface AutomationDatasetSyncConfig {
   enabled: boolean;
@@ -19,6 +19,7 @@ export interface AutomationDatasetSyncConfig {
 export interface AutomationTrainingConfig {
   enabled: boolean;
   mode: 'daily' | 'interval' | 'on_new_dataset';
+  target_track?: 'v1' | 'v2';
   hour: number;
   minute: number;
   interval_hours: number;
@@ -83,7 +84,11 @@ export interface AutomationStateResponse {
     sync_kernel_id: string;
     sync_kaggle_url: string;
     train_kernel_id: string;
+    train_kernel_slug?: string;
     train_kaggle_url: string;
+    train_kernel_id_v2?: string;
+    train_kernel_slug_v2?: string;
+    train_kaggle_url_v2?: string;
   };
   scheduler: AutomationSchedulerStatus;
 }
@@ -124,6 +129,7 @@ export const aiService = {
       produk_id_asli?: string | null;
       butuh_koreksi?: boolean;
       foto_cuplikan?: string | null;
+      metode_deteksi?: 'softmax' | 'embedding';
     },
     prefix: 'kasir' | 'owner' | 'admin' = 'kasir'
   ): Promise<any> {
@@ -186,6 +192,8 @@ export const aiService = {
     auto_add_high_confidence: boolean;
     show_top3_candidates: boolean;
     fallback_barcode_on_low: boolean;
+    enable_hybrid_embedding?: boolean;
+    embedding_min_similarity?: number;
     updated_at: string;
   }> {
     return api.get(`/${prefix}/ai/threshold`);
@@ -198,6 +206,8 @@ export const aiService = {
       auto_add_high_confidence?: boolean;
       show_top3_candidates?: boolean;
       fallback_barcode_on_low?: boolean;
+      enable_hybrid_embedding?: boolean;
+      embedding_min_similarity?: number;
     },
     prefix: 'owner' | 'admin' = 'admin'
   ): Promise<any> {
@@ -205,22 +215,28 @@ export const aiService = {
   },
 
   // Automated Training Pipeline (Kaggle GPU) & Research Metrics
-  triggerTraining(prefix: 'owner' | 'admin' = 'admin'): Promise<{
-    training_id: string;
-    kernel_id: string;
-    status: string;
-    kaggle_url: string;
-    started_at: string;
-    stdout?: string;
-  }> {
-    return api.post(`/${prefix}/ai/train`, {});
+    triggerTraining(
+      prefix: 'owner' | 'admin' = 'admin',
+      track: 'v1' | 'v2' = 'v1'
+    ): Promise<{
+      training_id: string;
+      track?: 'v1' | 'v2';
+      kernel_id: string;
+      status: string;
+      kaggle_url: string;
+      started_at: string;
+      stdout?: string;
+    }> {
+    return api.post(`/${prefix}/ai/train`, { track });
   },
 
   getTrainingStatus(
     id?: string,
-    prefix: 'owner' | 'admin' = 'admin'
+    prefix: 'owner' | 'admin' = 'admin',
+    track: 'v1' | 'v2' = 'v1'
   ): Promise<{
     status: 'idle' | 'starting' | 'running' | 'processing' | 'complete' | 'error';
+    track?: 'v1' | 'v2';
     has_training: boolean;
     training_id?: string;
     kernel_id: string;
@@ -241,7 +257,9 @@ export const aiService = {
     inference_ms?: number;
     error_summary?: any[];
   }> {
-    return api.get(`/${prefix}/ai/train/status`, id ? { id } : undefined);
+    const params: Record<string, string> = { track };
+    if (id) params.id = id;
+    return api.get(`/${prefix}/ai/train/status`, params);
   },
 
   getTrainingHistory(prefix: 'owner' | 'admin' = 'admin'): Promise<{
@@ -252,103 +270,104 @@ export const aiService = {
     return api.get(`/${prefix}/ai/train/history`);
   },
 
-  resetTraining(prefix: 'owner' | 'admin' = 'admin'): Promise<any> {
-    return api.post(`/${prefix}/ai/train/reset`, {});
-  },
-
-  fetchLatestKaggleOutput(
-    versi?: string,
-    prefix: 'owner' | 'admin' = 'admin'
-  ): Promise<any> {
-    return api.post(`/${prefix}/ai/train/fetch-output`, { versi });
-  },
-
-  getResearchSummary(
-    prefix: 'owner' | 'admin' = 'admin',
-    runId?: string
-  ): Promise<{
-    run_id?: string;
-    run_label?: string;
-    available_runs?: Array<{
-      run_id: string;
-      label: string;
-      generated_at?: string;
-      num_classes?: number | null;
-      best_experiment?: string | null;
-    }>;
-    kernel_id: string;
-    kaggle_url: string;
-    hf_repo: string;
-    num_classes?: number;
-    best_experiment?: string | null;
-    dataset_split: { train: number; val: number; test: number; total: number };
-    summary: any;
-    comparison: any[];
-    experiments_detail: {
-      E1_MobileNetV3: {
-        history: any[];
-        error_summary: any[];
-        classification_report: any[];
-        misclassified: any[];
-      };
-      E2_MobileNetV3_CBAM: {
-        history: any[];
-        error_summary: any[];
-        classification_report: any[];
-        misclassified: any[];
-      };
-    };
-  }> {
-    return api.get(`/${prefix}/ai/research-summary`, runId ? { run_id: runId } : undefined);
-  },
-
-  // Kaggle Dataset Syncer (CPU) & Dual Cronjob Automation
-  triggerDatasetSync(prefix: 'owner' | 'admin' = 'admin'): Promise<any> {
-    return api.post(`/${prefix}/ai/kaggle/sync-dataset`, {});
-  },
-
-  getDatasetSyncStatus(prefix: 'owner' | 'admin' = 'admin'): Promise<DatasetSyncStatusResponse> {
-    return api.get<DatasetSyncStatusResponse>(`/${prefix}/ai/kaggle/sync-dataset/status`);
-  },
-
-  resetDatasetSync(prefix: 'owner' | 'admin' = 'admin'): Promise<any> {
-    return api.post(`/${prefix}/ai/kaggle/sync-dataset/reset`, {});
-  },
-
-  getAutomationConfig(prefix: 'owner' | 'admin' = 'admin'): Promise<AutomationStateResponse> {
-    return api.get<AutomationStateResponse>(`/${prefix}/ai/automation/config`);
-  },
-
-  updateAutomationConfig(
-    payload: {
-      dataset_sync?: Partial<AutomationDatasetSyncConfig>;
-      training?: Partial<AutomationTrainingConfig>;
+    resetTraining(prefix: 'owner' | 'admin' = 'admin', track: 'v1' | 'v2' = 'v1'): Promise < any > {
+      return api.post(`/${prefix}/ai/train/reset`, { track });
     },
-    prefix: 'owner' | 'admin' = 'admin'
-  ): Promise<any> {
-    return api.put(`/${prefix}/ai/automation/config`, payload);
-  },
 
-  runSyncNow(force = false, prefix: 'owner' | 'admin' = 'admin'): Promise<any> {
-    return api.post(`/${prefix}/ai/automation/run-sync-now`, { force });
-  },
+      fetchLatestKaggleOutput(
+        versi ?: string,
+    prefix: 'owner' | 'admin' = 'admin',
+        track: 'v1' | 'v2' = 'v1'
+      ): Promise < any > {
+        return api.post(`/${prefix}/ai/train/fetch-output`, { versi, track });
+      },
 
-  runTrainNow(force = false, prefix: 'owner' | 'admin' = 'admin'): Promise<any> {
-    return api.post(`/${prefix}/ai/automation/run-train-now`, { force });
-  },
+        getResearchSummary(
+          prefix: 'owner' | 'admin' = 'admin',
+          runId ?: string
+        ): Promise < {
+          run_id?: string;
+          run_label?: string;
+          available_runs?: Array<{
+            run_id: string;
+            label: string;
+            generated_at?: string;
+            num_classes?: number | null;
+            best_experiment?: string | null;
+          }>;
+          kernel_id: string;
+          kaggle_url: string;
+          hf_repo: string;
+          num_classes?: number;
+          best_experiment?: string | null;
+          dataset_split: { train: number; val: number; test: number; total: number };
+          summary: any;
+          comparison: any[];
+          experiments_detail: {
+            E1_MobileNetV3: {
+              history: any[];
+              error_summary: any[];
+              classification_report: any[];
+              misclassified: any[];
+            };
+            E2_MobileNetV3_CBAM: {
+              history: any[];
+              error_summary: any[];
+              classification_report: any[];
+              misclassified: any[];
+            };
+          };
+        } > {
+          return api.get(`/${prefix}/ai/research-summary`, runId ? { run_id: runId } : undefined);
+        },
 
-  clearAutomationLogs(prefix: 'owner' | 'admin' = 'admin'): Promise<any> {
-    return api.delete(`/${prefix}/ai/automation/logs`);
-  },
+          // Kaggle Dataset Syncer (CPU) & Dual Cronjob Automation
+          triggerDatasetSync(prefix: 'owner' | 'admin' = 'admin'): Promise < any > {
+            return api.post(`/${prefix}/ai/kaggle/sync-dataset`, {});
+          },
 
-  // Kelas AI & Kuota Dataset
-  async getKelasList(
-    params?: { search?: string; status?: string; kategori?: string; limit?: number; page?: number; aktif?: boolean },
-    prefix: 'owner' | 'admin' | 'kasir' = 'owner'
-  ): Promise<AIKelas[]> {
-    const res = await api.get<any>(`/${prefix}/ai/kelas`, params);
-    if (Array.isArray(res)) return res;
-    if (res && Array.isArray(res.items)) return res.items;
+            getDatasetSyncStatus(prefix: 'owner' | 'admin' = 'admin'): Promise < DatasetSyncStatusResponse > {
+              return api.get<DatasetSyncStatusResponse>(`/${prefix}/ai/kaggle/sync-dataset/status`);
+            },
+
+              resetDatasetSync(prefix: 'owner' | 'admin' = 'admin'): Promise < any > {
+                return api.post(`/${prefix}/ai/kaggle/sync-dataset/reset`, {});
+              },
+
+                getAutomationConfig(prefix: 'owner' | 'admin' = 'admin'): Promise < AutomationStateResponse > {
+                  return api.get<AutomationStateResponse>(`/${prefix}/ai/automation/config`);
+                },
+
+                  updateAutomationConfig(
+                    payload: {
+                    dataset_sync?: Partial<AutomationDatasetSyncConfig>;
+                    training?: Partial<AutomationTrainingConfig>;
+                  },
+                    prefix: 'owner' | 'admin' = 'admin'
+                  ): Promise < any > {
+                    return api.put(`/${prefix}/ai/automation/config`, payload);
+                  },
+
+                    runSyncNow(force = false, prefix: 'owner' | 'admin' = 'admin'): Promise < any > {
+                      return api.post(`/${prefix}/ai/automation/run-sync-now`, { force });
+                    },
+
+                      runTrainNow(force = false, prefix: 'owner' | 'admin' = 'admin'): Promise < any > {
+                        return api.post(`/${prefix}/ai/automation/run-train-now`, { force });
+                      },
+
+                        clearAutomationLogs(prefix: 'owner' | 'admin' = 'admin'): Promise < any > {
+                          return api.delete(`/${prefix}/ai/automation/logs`);
+                        },
+
+                          // Kelas AI & Kuota Dataset
+                          async getKelasList(
+                            params ?: { search?: string; status?: string; kategori?: string; limit?: number; page?: number; aktif?: boolean },
+                            prefix: 'owner' | 'admin' | 'kasir' = 'owner'
+                          ): Promise < AIKelas[] > {
+                            const res = await api.get<any>(`/${prefix}/ai/kelas`, params);
+                            if(Array.isArray(res)) return res;
+                            if(res && Array.isArray(res.items)) return res.items;
     return [];
   },
 
@@ -524,5 +543,53 @@ export const aiService = {
       kelas_id: kelas_id || undefined,
       terverifikasi,
     });
+  },
+
+  // Hybrid Visual Embedding (Model v2)
+  enrollOwnerEmbedding(payload: {
+    produk_id?: string;
+    kelas_id?: string;
+    nama?: string;
+    barcode?: string | null;
+    model_versi?: string;
+    centroid: number[];
+    prototypes?: number[][];
+    jml_sampel?: number;
+    sumber?: string;
+  }): Promise<AIKelasEmbedding> {
+    return api.post<AIKelasEmbedding>('/owner/ai/embeddings/enroll', payload);
+  },
+
+  getStoreEmbeddings(
+    prefix: 'owner' | 'kasir' = 'kasir',
+    modelVersi?: string
+  ): Promise<AIKelasEmbedding[]> {
+    return api.get<AIKelasEmbedding[]>(
+      `/${prefix}/ai/embeddings`,
+      modelVersi ? { model_versi: modelVersi } : undefined
+    );
+  },
+
+  getAdminEmbeddings(params?: {
+    toko_id?: string;
+    model_versi?: string;
+    status?: string;
+    limit?: number;
+  }): Promise<{
+    items: AIKelasEmbedding[];
+    summary: { total: number; aktif: number; terlatih: number; nonaktif: number };
+  }> {
+    return api.get('/admin/ai/embeddings', params);
+  },
+
+  updateAdminEmbeddingStatus(
+    id: string,
+    status: 'aktif' | 'nonaktif' | 'terlatih'
+  ): Promise<AIKelasEmbedding> {
+    return api.patch(`/admin/ai/embeddings/${id}/status`, { status });
+  },
+
+  deleteAdminEmbedding(id: string): Promise<any> {
+    return api.delete(`/admin/ai/embeddings/${id}`);
   },
 };

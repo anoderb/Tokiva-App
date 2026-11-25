@@ -3,7 +3,10 @@ import type { DatasetPhotoItem } from "@/components/shared/dataset-photo-studio"
 import { useAuth } from "@/components/auth/auth-provider";
 import { useToast } from "@/components/ui/toast";
 import { produkService } from "@/lib/services/produk.service";
+import { aiService } from "@/lib/services/ai.service";
 import { tokoService } from "@/lib/services/toko.service";
+import { loadTfjs, loadCachedTfGraphModel, disposeTfModel } from "@/app/admin/ai/hooks/useTfjsModel";
+import { extractPrototypeFromBase64List } from "@/lib/ai/hybrid-embedding";
 import { compressImageFileToBase64 } from "@/lib/utils/image";
 import type { Kategori, Produk, ProdukMaster, ProdukSatuan } from "@/types/api";
 import {
@@ -324,12 +327,62 @@ export function useOwnerProduk() {
         await produkService.updateProduk(editingProduct.id, payload);
         toast.success(`Produk "${formData.nama}" berhasil diperbarui!`);
       } else {
-        await produkService.createProduk({
+        const photoBase64List = datasetFiles.map((f) => f.base64).filter(Boolean);
+        const createdProd = await produkService.createProduk({
           ...payload,
           satuan_tambahan: satuanList,
           dataset_fotos: datasetFiles.length > 0 ? datasetFiles.map((f) => ({ nama_file: f.name, base64: f.base64, sudut: f.sudut })) : undefined,
         });
         toast.success(`Produk "${formData.nama}" berhasil ditambahkan & dataset AI dikirim ke verifikasi!`);
+
+        // Non-blocking client-side embedding enrollment saat model aktif mendukung v2 Hybrid
+        if (createdProd?.id && photoBase64List.length > 0) {
+          void (async () => {
+            let loadedModel: any = null;
+            try {
+              const activeModel = await aiService.getModelAktif("owner");
+              if (
+                !activeModel?.mendukung_embedding ||
+                !activeModel.model_json_url ||
+                activeModel.threshold_config?.enable_hybrid_embedding === false
+              ) {
+                return;
+              }
+              const tf = await loadTfjs();
+              loadedModel = await loadCachedTfGraphModel(activeModel.model_json_url, "tokiva-owner-model");
+              const daftarKelasCount = Array.isArray(activeModel.daftar_kelas)
+                ? activeModel.daftar_kelas.length
+                : activeModel.daftar_kelas && typeof activeModel.daftar_kelas === "object"
+                  ? Object.keys(activeModel.daftar_kelas).length
+                  : 0;
+              const proto = await extractPrototypeFromBase64List({
+                model: loadedModel,
+                tf,
+                base64List: photoBase64List,
+                numClassesHint: Number(activeModel.jml_kelas) || daftarKelasCount,
+                expectedDim: Number(activeModel.dimensi_embedding) || 256,
+                maxSamples: 8,
+              });
+              if (!proto) return;
+              await aiService.enrollOwnerEmbedding({
+                produk_id: createdProd.id,
+                kelas_id: createdProd.ai_kelas_id || undefined,
+                nama: createdProd.nama,
+                barcode: createdProd.barcode ?? null,
+                model_versi: activeModel.versi,
+                centroid: proto.centroid,
+                prototypes: proto.prototypes,
+                jml_sampel: proto.jml_sampel,
+                sumber: "owner_produk",
+              });
+              toast.success(`Embedding v2 "${createdProd.nama}" langsung aktif di kasir toko!`);
+            } catch (embErr) {
+              console.warn("Skip auto-enroll embedding v2:", embErr);
+            } finally {
+              disposeTfModel(loadedModel);
+            }
+          })();
+        }
       }
       setFormOpen(false);
       loadData();

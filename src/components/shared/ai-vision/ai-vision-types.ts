@@ -5,6 +5,7 @@ export interface AiDetectionCandidate {
   confidence: number;
   classLabel: string;
   kelasId?: string;
+  detectionMethod?: "softmax" | "embedding";
 }
 
 export interface SessionScanItem {

@@ -354,8 +354,15 @@ export interface AIModel {
     auto_add_high_confidence: boolean;
     show_top3_candidates: boolean;
     fallback_barcode_on_low: boolean;
+    enable_hybrid_embedding?: boolean;
+    embedding_min_similarity?: number;
     updated_at?: string;
   } | null;
+  model_family?: 'v1' | 'v2';
+  mendukung_embedding?: boolean;
+  dimensi_embedding?: number | null;
+  path_centroids?: string | null;
+  path_embedding_meta?: string | null;
   ringkasan_training?: Record<string, any> | null;
   confidence_threshold?: number;
   aktif: boolean;
@@ -411,6 +418,27 @@ export interface AISampel {
   hf_path?: string | null;
   dibuat_pada: string;
   kelas?: Pick<AIKelas, 'id' | 'kode_kelas' | 'nama' | 'nama_kelas' | 'kategori'> | null;
+}
+
+export interface AIKelasEmbedding {
+  id: string;
+  toko_id: string;
+  produk_id?: string | null;
+  kelas_id: string;
+  model_versi: string;
+  embedding: {
+    centroid: number[];
+    prototypes?: number[][];
+  };
+  dimensi: number;
+  jml_sampel: number;
+  sumber: 'owner_produk' | 'kasir_konfirmasi' | 'recompute_admin' | string;
+  status: 'aktif' | 'terlatih' | 'nonaktif';
+  dibuat_pada: string;
+  diubah_pada: string;
+  toko?: { id: string; nama: string } | null;
+  kelas?: Pick<AIKelas, 'id' | 'kode_kelas' | 'nama' | 'barcode'> | null;
+  produk?: { id: string; nama: string; barcode?: string | null; harga_jual?: number; foto_url?: string | null } | null;
 }
 
 export interface PaginatedResponse<T> {

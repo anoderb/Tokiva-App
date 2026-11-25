@@ -11,13 +11,37 @@ import {
 } from "@/lib/services/ai.service";
 import { DEFAULT_SYNC_FORM, DEFAULT_TRAIN_FORM } from "./kaggle-helpers";
 
-/** Hook state, polling, dan handler otomatisasi sync dataset serta training GPU Kaggle */
+export type TrainingTrack = "v1" | "v2";
+export type TrainingExecStatus = "idle" | "starting" | "running" | "processing" | "complete" | "error";
+
+interface TrackRunState {
+  status: TrainingExecStatus;
+  result: any;
+  error: string | null;
+  kaggleUrl: string;
+  elapsed: number;
+  isFetchingOutput: boolean;
+}
+
+const initialTrackState = (): TrackRunState => ({
+  status: "idle",
+  result: null,
+  error: null,
+  kaggleUrl: "",
+  elapsed: 0,
+  isFetchingOutput: false,
+});
+
+/** Hook state, polling, dan handler otomatisasi sync dataset serta training GPU Kaggle (Dual-Track v1/v2) */
 export function useKaggleAutomation({ onRefresh }: { onRefresh: () => void }) {
   const { toast } = useToast();
 
-  const [trainStatus, setTrainStatus] = useState<
-    "idle" | "starting" | "running" | "processing" | "complete" | "error"
-  >("idle");
+  const [selectedTrack, setSelectedTrack] = useState<TrainingTrack>("v1");
+  const [trackStates, setTrackStates] = useState<Record<TrainingTrack, TrackRunState>>({
+    v1: initialTrackState(),
+    v2: initialTrackState(),
+  });
+
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
@@ -26,11 +50,6 @@ export function useKaggleAutomation({ onRefresh }: { onRefresh: () => void }) {
     action: () => Promise<void>;
   } | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
-  const [trainResult, setTrainResult] = useState<any>(null);
-  const [trainError, setTrainError] = useState<string | null>(null);
-  const [kaggleUrl, setKaggleUrl] = useState<string>("");
-  const [elapsed, setElapsed] = useState<number>(0);
-  const [isFetchingOutput, setIsFetchingOutput] = useState<boolean>(false);
 
   const [syncForm, setSyncForm] = useState<AutomationDatasetSyncConfig>(DEFAULT_SYNC_FORM);
   const [trainForm, setTrainForm] = useState<AutomationTrainingConfig>(DEFAULT_TRAIN_FORM);
@@ -45,10 +64,17 @@ export function useKaggleAutomation({ onRefresh }: { onRefresh: () => void }) {
   const [isTriggeringSync, setIsTriggeringSync] = useState<boolean>(false);
   const [isTriggeringAutoTrain, setIsTriggeringAutoTrain] = useState<boolean>(false);
 
-  const pollRef = useRef<NodeJS.Timeout | null>(null);
+  const pollRefs = useRef<Record<TrainingTrack, NodeJS.Timeout | null>>({ v1: null, v2: null });
   const syncPollRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number | null>(null);
+  const startTimeRefs = useRef<Record<TrainingTrack, number | null>>({ v1: null, v2: null });
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const updateTrack = useCallback((track: TrainingTrack, patch: Partial<TrackRunState>) => {
+    setTrackStates((prev) => ({
+      ...prev,
+      [track]: { ...prev[track], ...patch },
+    }));
+  }, []);
 
   const loadAutomationState = useCallback(async () => {
     setIsLoadingAuto(true);
@@ -63,123 +89,143 @@ export function useKaggleAutomation({ onRefresh }: { onRefresh: () => void }) {
       setSchedulerStatus(res?.scheduler || null);
       setKaggleInfo(res?.kaggle_info || null);
       if (res?.kaggle_info?.train_kaggle_url) {
-        setKaggleUrl(res.kaggle_info.train_kaggle_url);
+        updateTrack("v1", { kaggleUrl: res.kaggle_info.train_kaggle_url });
+      }
+      if (res?.kaggle_info?.train_kaggle_url_v2) {
+        updateTrack("v2", { kaggleUrl: res.kaggle_info.train_kaggle_url_v2 });
       }
     } catch {
       // Abaikan error transien saat mount awal
     } finally {
       setIsLoadingAuto(false);
     }
-  }, []);
+}, [updateTrack]);
 
-  const checkDatasetSyncStatus = useCallback(async () => {
-    try {
-      const res = await aiService.getDatasetSyncStatus("admin");
-      setDatasetSyncState(res);
-      if (res.status === "running" || res.status === "starting" || res.status === "processing") {
-        if (syncPollRef.current) clearTimeout(syncPollRef.current);
-        syncPollRef.current = setTimeout(checkDatasetSyncStatus, 15000);
-      } else {
-        if (syncPollRef.current) clearTimeout(syncPollRef.current);
-        if (res.status === "complete") loadAutomationState();
-      }
-    } catch {
-      // Pertahankan state terakhir jika terjadi gangguan jaringan
-    }
-  }, [loadAutomationState]);
-
-  const checkStatus = useCallback(async () => {
-    try {
-      const res = await aiService.getTrainingStatus(undefined, "admin");
-      if (res.kaggle_url) setKaggleUrl(res.kaggle_url);
-      if (res.status === "running" || res.status === "starting" || res.status === "processing") {
-        setTrainStatus(res.status);
-        if (pollRef.current) clearTimeout(pollRef.current);
-        pollRef.current = setTimeout(checkStatus, 15000);
-      } else if (res.status === "complete") {
-        setTrainStatus("complete");
-        setTrainResult(res);
-        if (pollRef.current) clearTimeout(pollRef.current);
-        onRefresh();
-      } else if (res.status === "error") {
-        setTrainStatus("error");
-        setTrainError(res.error_message || "Kaggle kernel run error");
-        if (pollRef.current) clearTimeout(pollRef.current);
-      } else {
-        setTrainStatus("idle");
-      }
-    } catch {
-      // Tetap idle jika pengecekan awal gagal
-    }
-  }, [onRefresh]);
-
-  useEffect(() => {
-    checkStatus();
-    loadAutomationState();
-    checkDatasetSyncStatus();
-    return () => {
-      if (pollRef.current) clearTimeout(pollRef.current);
+const checkDatasetSyncStatus = useCallback(async () => {
+  try {
+    const res = await aiService.getDatasetSyncStatus("admin");
+    setDatasetSyncState(res);
+    if (res.status === "running" || res.status === "starting" || res.status === "processing") {
       if (syncPollRef.current) clearTimeout(syncPollRef.current);
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
-  }, [checkStatus, loadAutomationState, checkDatasetSyncStatus]);
-
-  useEffect(() => {
-    if (trainStatus === "running" || trainStatus === "starting" || trainStatus === "processing") {
-      if (!startTimeRef.current) startTimeRef.current = Date.now();
-      timerRef.current = setInterval(() => {
-        if (startTimeRef.current) setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000));
-      }, 1000);
+      syncPollRef.current = setTimeout(checkDatasetSyncStatus, 15000);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-      startTimeRef.current = null;
+      if (syncPollRef.current) clearTimeout(syncPollRef.current);
+      if (res.status === "complete") loadAutomationState();
+    }
+  } catch {
+    // Pertahankan state terakhir jika terjadi gangguan jaringan
+  }
+}, [loadAutomationState]);
+
+      const checkStatusForTrack = useCallback(
+        async (track: TrainingTrack) => {
+          try {
+            const res = await aiService.getTrainingStatus(undefined, "admin", track);
+            if (res.kaggle_url) updateTrack(track, { kaggleUrl: res.kaggle_url });
+            if (res.status === "running" || res.status === "starting" || res.status === "processing") {
+              if (!startTimeRefs.current[track]) startTimeRefs.current[track] = Date.now();
+              updateTrack(track, { status: res.status });
+              if (pollRefs.current[track]) clearTimeout(pollRefs.current[track]!);
+              pollRefs.current[track] = setTimeout(() => checkStatusForTrack(track), 15000);
+            } else if (res.status === "complete") {
+              startTimeRefs.current[track] = null;
+              updateTrack(track, { status: "complete", result: res });
+              if (pollRefs.current[track]) clearTimeout(pollRefs.current[track]!);
+              onRefresh();
+            } else if (res.status === "error") {
+              startTimeRefs.current[track] = null;
+              updateTrack(track, { status: "error", error: res.error_message || "Kaggle kernel run error" });
+              if (pollRefs.current[track]) clearTimeout(pollRefs.current[track]!);
+            } else {
+              startTimeRefs.current[track] = null;
+              updateTrack(track, { status: "idle" });
+            }
+          } catch {
+            // Tetap idle jika pengecekan awal gagal
+          }
+    },
+[onRefresh, updateTrack]
+  );
+
+const checkStatus = useCallback(
+  (track: TrainingTrack = selectedTrack) => checkStatusForTrack(track),
+  [checkStatusForTrack, selectedTrack]
+);
+
+useEffect(() => {
+  checkStatusForTrack("v1");
+  checkStatusForTrack("v2");
+  loadAutomationState();
+  checkDatasetSyncStatus();
+  return () => {
+    if (pollRefs.current.v1) clearTimeout(pollRefs.current.v1);
+    if (pollRefs.current.v2) clearTimeout(pollRefs.current.v2);
+    if (syncPollRef.current) clearTimeout(syncPollRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
+  };
+  }, [checkStatusForTrack, loadAutomationState, checkDatasetSyncStatus]);
+
+useEffect(() => {
+    const anyActive = (["v1", "v2"] as TrainingTrack[]).some((t) =>
+      ["running", "starting", "processing"].includes(trackStates[t].status)
+    );
+    if (anyActive) {
+      timerRef.current = setInterval(() => {
+        setTrackStates((prev) => {
+          const next = { ...prev };
+          for (const t of ["v1", "v2"] as TrainingTrack[]) {
+            if (["running", "starting", "processing"].includes(next[t].status) && startTimeRefs.current[t]) {
+              next[t] = { ...next[t], elapsed: Math.floor((Date.now() - startTimeRefs.current[t]!) / 1000) };
+            }
+          }
+          return next;
+        });
+      }, 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [trainStatus]);
+  }, [trackStates.v1.status, trackStates.v2.status]);
 
-  const handleTriggerTrain = () => {
+  const handleTriggerTrain = (track: TrainingTrack = selectedTrack) => {
+    const label = track === "v2" ? "Track v2 — Hybrid Embedding (Dual-Output)" : "Track v1 — Classic (Softmax)";
     setConfirmDialog({
-      title: "Mulai Pelatihan Model di Kaggle GPU?",
+      title: `Mulai Pelatihan ${label} di Kaggle GPU?`,
       message:
-        "Mulai pipeline pelatihan otomatis di Kaggle Cloud? Akselerator GPU T4 x 2, Dataset Hugging Face Hub, estimasi waktu 30-45 menit, dan model TFJS akan diunggah ke Supabase Storage.",
-      confirmText: "Mulai Training GPU",
+        `Mulai pipeline pelatihan untuk ${label} pada cluster Kaggle Cloud? Akselerator GPU T4 x 2, Dataset Hugging Face Hub, estimasi waktu 30-45 menit.`,
+      confirmText: `Mulai Training ${track.toUpperCase()}`,
       variant: "primary",
       action: async () => {
-        setTrainStatus("starting");
-        setTrainResult(null);
-        setTrainError(null);
-        setElapsed(0);
-        startTimeRef.current = Date.now();
+        startTimeRefs.current[track] = Date.now();
+        updateTrack(track, { status: "starting", result: null, error: null, elapsed: 0 });
         try {
-          const res = await aiService.triggerTraining("admin");
-          if (res.kaggle_url) setKaggleUrl(res.kaggle_url);
-          toast.success("Pipeline training berhasil dikirim ke Kaggle GPU!");
-          pollRef.current = setTimeout(checkStatus, 15000);
+          const res = await aiService.triggerTraining("admin", track);
+          if (res.kaggle_url) updateTrack(track, { kaggleUrl: res.kaggle_url });
+          toast.success(`Pipeline training ${track.toUpperCase()} berhasil dikirim ke Kaggle GPU!`);
+          pollRefs.current[track] = setTimeout(() => checkStatusForTrack(track), 15000);
         } catch (err: any) {
-          setTrainStatus("error");
-          setTrainError(err?.message || "Gagal memicu kernel Kaggle");
+          startTimeRefs.current[track] = null;
+          updateTrack(track, { status: "error", error: err?.message || "Gagal memicu kernel Kaggle" });
           toast.error(err?.message || "Gagal memicu kernel Kaggle");
         }
       },
     });
-  };
+};
 
-  const handleResetTraining = () => {
+  const handleResetTraining = (track: TrainingTrack = selectedTrack) => {
     setConfirmDialog({
-      title: "Reset Status Training?",
-      message: "Reset status sesi training ke IDLE?",
+      title: `Reset Status Training ${track.toUpperCase()}?`,
+      message: `Reset status sesi training track ${track.toUpperCase()} ke IDLE?`,
       confirmText: "Ya, Reset",
       variant: "warning",
       action: async () => {
         try {
-          await aiService.resetTraining("admin");
-          setTrainStatus("idle");
-          setTrainResult(null);
-          setTrainError(null);
-          setElapsed(0);
-          toast.success("Status training di-reset.");
+          await aiService.resetTraining("admin", track);
+          startTimeRefs.current[track] = null;
+          updateTrack(track, { status: "idle", result: null, error: null, elapsed: 0 });
+          toast.success(`Status training ${track.toUpperCase()} di-reset.`);
         } catch (err: any) {
           toast.error(err?.message || "Gagal reset training");
         }
@@ -187,27 +233,25 @@ export function useKaggleAutomation({ onRefresh }: { onRefresh: () => void }) {
     });
   };
 
-  const handleFetchLatestOutput = () => {
-    setConfirmDialog({
-      title: "Tarik Artefak Model Kaggle?",
-      message:
-        "Tarik artefak model TensorFlow.js (model.json, shards *.bin, class.json, metrics) dari run kernel Kaggle terakhir yang sudah selesai (~5-10 detik)?",
-      confirmText: "Tarik Output",
-      variant: "primary",
-      action: async () => {
-        setIsFetchingOutput(true);
-        try {
-          const res = await aiService.fetchLatestKaggleOutput(undefined, "admin");
-          toast.success(`Model ${res.versi || ""} berhasil ditarik dari Kaggle dan didaftarkan!`);
-          setTrainStatus("complete");
-          setTrainResult(res);
-          onRefresh();
-        } catch (err: any) {
-          toast.error(err?.message || "Gagal menarik output dari Kaggle");
-        } finally {
-          setIsFetchingOutput(false);
-        }
-      },
+    const handleFetchLatestOutput = (track: TrainingTrack = selectedTrack) => {
+      setConfirmDialog({
+        title: `Tarik Artefak Model Kaggle (${track.toUpperCase()})?`,
+        message:
+        `Tarik artefak model TensorFlow.js (${track === "v2" ? "Dual-Output Softmax + Embedding" : "Classic Softmax"}) dari run kernel Kaggle ${track.toUpperCase()} terakhir yang sudah selesai?`,
+        confirmText: `Tarik Output ${track.toUpperCase()}`,
+        variant: "primary",
+        action: async () => {
+          updateTrack(track, { isFetchingOutput: true });
+          try {
+            const res = await aiService.fetchLatestKaggleOutput(undefined, "admin", track);
+            toast.success(`Model ${res.versi || ""} berhasil ditarik dari Kaggle (${track.toUpperCase()}) dan didaftarkan!`);
+            updateTrack(track, { status: "complete", result: res, isFetchingOutput: false });
+            onRefresh();
+          } catch (err: any) {
+            updateTrack(track, { isFetchingOutput: false });
+            toast.error(err?.message || "Gagal menarik output dari Kaggle");
+          }
+        },
     });
   };
 
@@ -309,9 +353,10 @@ export function useKaggleAutomation({ onRefresh }: { onRefresh: () => void }) {
     setIsTriggeringAutoTrain(true);
     try {
       const res = await aiService.runTrainNow(force, "admin");
+      const tgt = (trainForm.target_track || "v1") as TrainingTrack;
       if (res?.executed) {
         toast.success(res.message || "Training GPU otomatis dipicu!");
-        checkStatus();
+        checkStatusForTrack(tgt);
       } else {
         toast.info(res?.message || "Training dilewati karena belum memenuhi ambang data baru.");
       }
@@ -341,9 +386,19 @@ export function useKaggleAutomation({ onRefresh }: { onRefresh: () => void }) {
     });
   };
 
+  const activeTrackState = trackStates[selectedTrack];
+  const otherTrack: TrainingTrack = selectedTrack === "v1" ? "v2" : "v1";
+  const otherTrackRunning = ["running", "starting", "processing"].includes(trackStates[otherTrack].status);
+
   return {
-    trainStatus, confirmDialog, setConfirmDialog, confirmLoading, setConfirmLoading,
-    trainResult, trainError, kaggleUrl, elapsed, isFetchingOutput,
+    selectedTrack, setSelectedTrack, trackStates, otherTrack, otherTrackRunning,
+    trainStatus: activeTrackState.status,
+    trainResult: activeTrackState.result,
+    trainError: activeTrackState.error,
+    kaggleUrl: activeTrackState.kaggleUrl,
+    elapsed: activeTrackState.elapsed,
+    isFetchingOutput: activeTrackState.isFetchingOutput,
+    confirmDialog, setConfirmDialog, confirmLoading, setConfirmLoading,
     syncForm, setSyncForm, trainForm, setTrainForm, deltaMetrics, schedulerStatus,
     autoLogs, kaggleInfo, datasetSyncState, isLoadingAuto, isSavingSync, isSavingTrain,
     isTriggeringSync, isTriggeringAutoTrain, loadAutomationState, checkStatus,

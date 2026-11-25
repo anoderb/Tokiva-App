@@ -51,6 +51,7 @@ export const DEFAULT_SYNC_FORM: AutomationDatasetSyncConfig = {
 export const DEFAULT_TRAIN_FORM: AutomationTrainingConfig = {
   enabled: false,
   mode: "on_new_dataset",
+  target_track: "v1",
   hour: 2,
   minute: 0,
   interval_hours: 24,

@@ -27,6 +27,7 @@ import {
 import { aiService } from "@/lib/services/ai.service";
 import { TestingSandbox } from "./TestingSandbox";
 import { ModelDetailModal } from "./ModelDetailModal";
+import { EmbeddingMonitorSection } from "./EmbeddingMonitorSection";
 import type { AIModel } from "@/types/api";
 
 function formatMetric(val?: number | null, digits = 2): string {
@@ -101,6 +102,8 @@ export function TabModelSandboxDeploy({
   const [autoAddHigh, setAutoAddHigh] = useState<boolean>(true);
   const [showTop3, setShowTop3] = useState<boolean>(true);
   const [fallbackBarcode, setFallbackBarcode] = useState<boolean>(true);
+  const [enableHybridEmbedding, setEnableHybridEmbedding] = useState<boolean>(true);
+  const [embeddingMinSim, setEmbeddingMinSim] = useState<number>(78);
   const [submitting, setSubmitting] = useState<boolean>(false);
 
   // Pagination state
@@ -136,6 +139,8 @@ export function TabModelSandboxDeploy({
           setAutoAddHigh(cfg.auto_add_high_confidence ?? true);
           setShowTop3(cfg.show_top3_candidates ?? true);
           setFallbackBarcode(cfg.fallback_barcode_on_low ?? true);
+          setEnableHybridEmbedding(cfg.enable_hybrid_embedding ?? true);
+          setEmbeddingMinSim(cfg.embedding_min_similarity ?? 78);
         }
       })
       .catch(() => { });
@@ -221,6 +226,8 @@ export function TabModelSandboxDeploy({
           auto_add_high_confidence: autoAddHigh,
           show_top3_candidates: showTop3,
           fallback_barcode_on_low: fallbackBarcode,
+          enable_hybrid_embedding: enableHybridEmbedding,
+          embedding_min_similarity: embeddingMinSim,
         },
         "admin"
       );
@@ -294,10 +301,15 @@ export function TabModelSandboxDeploy({
                         className={`hover:bg-muted/30 ${isSelectedForSandbox ? "bg-admin/10" : ""}`}
                       >
                         <td className="py-2.5 px-3 font-semibold font-mono whitespace-nowrap">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-fg font-bold">{m.versi}</span>
-                            {m.aktif && <Badge variant="green">LIVE</Badge>}
-                          </div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-fg font-bold">{m.versi}</span>
+                              {m.aktif && <Badge variant="green">LIVE</Badge>}
+                              {m.mendukung_embedding || m.model_family === "v2" ? (
+                                <Badge variant="purple">v2 Hybrid</Badge>
+                              ) : (
+                                <Badge variant="gray">v1 Classic</Badge>
+                              )}
+                            </div>
                         </td>
                         <td className="py-2.5 px-3">
                           <span className="font-semibold block whitespace-nowrap">{m.nama_model || m.arsitektur}</span>
@@ -402,278 +414,331 @@ export function TabModelSandboxDeploy({
           </div>
         </div>
 
-          {/* Pagination Bar */}
-          {models.length > 0 && (
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs">
-              <div className="text-muted-fg font-mono text-[11px]">
-                Menampilkan{" "}
-                <strong className="text-fg">{startIndex + 1}</strong>–
-                <strong className="text-fg">{Math.min(startIndex + pageSize, models.length)}</strong>{" "}
-                dari <strong className="text-fg">{models.length}</strong> model
-              </div>
+        {/* Pagination Bar */}
+        {models.length > 0 && (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 text-xs">
+            <div className="text-muted-fg font-mono text-[11px]">
+              Menampilkan{" "}
+              <strong className="text-fg">{startIndex + 1}</strong>–
+              <strong className="text-fg">{Math.min(startIndex + pageSize, models.length)}</strong>{" "}
+              dari <strong className="text-fg">{models.length}</strong> model
+            </div>
 
-              <div className="flex items-center gap-2">
-                <select
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value) || 5);
-                    setPage(1);
-                  }}
-                  className="px-2 py-1 rounded border-2 border-fg bg-card text-[11px] font-bold"
+            <div className="flex items-center gap-2">
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value) || 5);
+                  setPage(1);
+                }}
+                className="px-2 py-1 rounded border-2 border-fg bg-card text-[11px] font-bold"
+              >
+                <option value={5}>5 / hal</option>
+                <option value={10}>10 / hal</option>
+                <option value={20}>20 / hal</option>
+              </select>
+
+              <div className="flex items-center gap-1">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={safePage <= 1}
+                  className="px-2 py-1 text-xs font-bold"
                 >
-                  <option value={5}>5 / hal</option>
-                  <option value={10}>10 / hal</option>
-                  <option value={20}>20 / hal</option>
-                </select>
-
-                <div className="flex items-center gap-1">
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                    disabled={safePage <= 1}
-                    className="px-2 py-1 text-xs font-bold"
-                  >
-                    <ChevronLeft className="w-3.5 h-3.5" />
-                  </Button>
-                  <span className="px-2.5 py-1 rounded border-2 border-fg bg-muted font-mono font-bold text-[11px]">
-                    Hal {safePage} / {totalPages}
-                  </span>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                    disabled={safePage >= totalPages}
-                    className="px-2 py-1 text-xs font-bold"
-                  >
-                    <ChevronRight className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </Button>
+                <span className="px-2.5 py-1 rounded border-2 border-fg bg-muted font-mono font-bold text-[11px]">
+                  Hal {safePage} / {totalPages}
+                </span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={safePage >= totalPages}
+                  className="px-2 py-1 text-xs font-bold"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </Button>
               </div>
             </div>
-          )}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Embedded Realtime Testing Sandbox */}
+      <TestingSandbox
+        model={sandboxModel}
+        threshold={highThreshold / 100}
+        embeddingMinSimilarity={embeddingMinSim}
+      />
+
+      {/* 3. Threshold Configuration (3-Tier) */}
+      <div className="p-5 sm:p-6 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border pb-3">
+          <div className="flex items-center gap-2">
+            <Sliders className="w-5 h-5 text-admin shrink-0" />
+            <h4 className="font-heading font-bold text-base">
+              Konfigurasi Threshold Verifikasi Kasir (3-Tier Recognition)
+            </h4>
+          </div>
+          <Button
+            type="button"
+            variant="admin"
+            onClick={handleSaveThreshold}
+            disabled={submitting}
+            className="text-xs font-bold"
+          >
+            {submitting ? "Menyimpan..." : "Simpan Konfigurasi Threshold"}
+          </Button>
         </div>
 
-        {/* 2. Embedded Realtime Testing Sandbox */}
-        <TestingSandbox model={sandboxModel} threshold={highThreshold / 100} />
+        <p className="text-xs text-muted-fg">
+          Atur batas ambang keyakinan probabilitas inferensi AI sebelum produk dimasukkan otomatis atau memerlukan konfirmasi kasir di POS:
+        </p>
 
-        {/* 3. Threshold Configuration (3-Tier) */}
-        <div className="p-5 sm:p-6 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border pb-3">
-            <div className="flex items-center gap-2">
-              <Sliders className="w-5 h-5 text-admin shrink-0" />
-              <h4 className="font-heading font-bold text-base">
-                Konfigurasi Threshold Verifikasi Kasir (3-Tier Recognition)
-              </h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Tier 1 */}
+          <div className="p-4 rounded-lg border-2 border-fg bg-emerald-50/40 dark:bg-emerald-950/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-heading font-bold text-xs uppercase text-emerald-800 dark:text-emerald-300">
+                Tier 1 — High Confidence
+              </span>
+              <span className="font-mono font-bold text-base text-emerald-700 dark:text-emerald-400">
+                ≥ {highThreshold}%
+              </span>
             </div>
-            <Button
-              type="button"
-              variant="admin"
-              onClick={handleSaveThreshold}
-              disabled={submitting}
-              className="text-xs font-bold"
-            >
-              {submitting ? "Menyimpan..." : "Simpan Konfigurasi Threshold"}
-            </Button>
+            <p className="text-[11px] text-muted-fg leading-relaxed">
+              Produk langsung ditambahkan ke keranjang POS secara otomatis tanpa konfirmasi kasir.
+            </p>
+            <input
+              type="range"
+              min="50"
+              max="95"
+              step="5"
+              value={highThreshold}
+              onChange={(e) => setHighThreshold(Number(e.target.value))}
+              className="w-full accent-emerald-600 cursor-pointer"
+            />
+            <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={autoAddHigh}
+                onChange={(e) => setAutoAddHigh(e.target.checked)}
+                className="rounded border-fg"
+              />
+              Auto-add ke keranjang transaksi
+            </label>
           </div>
 
-          <p className="text-xs text-muted-fg">
-            Atur batas ambang keyakinan probabilitas inferensi AI sebelum produk dimasukkan otomatis atau memerlukan konfirmasi kasir di POS:
-          </p>
+          {/* Tier 2 */}
+          <div className="p-4 rounded-lg border-2 border-fg bg-amber-50/40 dark:bg-amber-950/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-heading font-bold text-xs uppercase text-amber-800 dark:text-amber-300">
+                Tier 2 — Medium Confidence
+              </span>
+              <span className="font-mono font-bold text-base text-amber-700 dark:text-amber-400">
+                {mediumThreshold}% – {highThreshold - 1}%
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-fg leading-relaxed">
+              Tampilkan dialog Top-3 produk kandidat agar kasir memilih produk yang tepat dengan 1 sentuhan.
+            </p>
+            <input
+              type="range"
+              min="15"
+              max="50"
+              step="5"
+              value={mediumThreshold}
+              onChange={(e) => setMediumThreshold(Number(e.target.value))}
+              className="w-full accent-amber-600 cursor-pointer"
+            />
+            <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showTop3}
+                onChange={(e) => setShowTop3(e.target.checked)}
+                className="rounded border-fg"
+              />
+              Tampilkan popup Top-3 kandidat kasir
+            </label>
+          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Tier 1 */}
-            <div className="p-4 rounded-lg border-2 border-fg bg-emerald-50/40 dark:bg-emerald-950/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-heading font-bold text-xs uppercase text-emerald-800 dark:text-emerald-300">
-                  Tier 1 — High Confidence
-                </span>
-                <span className="font-mono font-bold text-base text-emerald-700 dark:text-emerald-400">
-                  ≥ {highThreshold}%
-                </span>
-              </div>
+          {/* Tier 3 */}
+          <div className="p-4 rounded-lg border-2 border-fg bg-rose-50/40 dark:bg-rose-950/20 space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="font-heading font-bold text-xs uppercase text-rose-800 dark:text-rose-300">
+                Tier 3 — Low Confidence
+              </span>
+              <span className="font-mono font-bold text-base text-rose-700 dark:text-rose-400">
+                &lt; {mediumThreshold}%
+              </span>
+            </div>
+            <p className="text-[11px] text-muted-fg leading-relaxed">
+              Kemasan tidak terdeteksi atau tidak yakin. Otomatis alihkan ke pemindaian Barcode Scanner atau input manual.
+            </p>
+            <div className="pt-4 text-xs font-mono text-muted-fg">Fallback Trigger</div>
+            <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
+              <input
+                type="checkbox"
+                checked={fallbackBarcode}
+                onChange={(e) => setFallbackBarcode(e.target.checked)}
+                className="rounded border-fg"
+              />
+              Peringatan fallback ke pemindai barcode
+            </label>
+          </div>
+        </div>
+
+        {/* Konfigurasi Hybrid Visual Embedding (Model v2) */}
+        <div className="p-4 rounded-lg border-2 border-fg bg-admin/5 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <span className="font-heading font-bold text-xs uppercase text-admin block">
+                Hybrid Visual Embedding (Khusus Model v2)
+              </span>
               <p className="text-[11px] text-muted-fg leading-relaxed">
-                Produk langsung ditambahkan ke keranjang POS secara otomatis tanpa konfirmasi kasir.
+                Produk baru milik Owner langsung dikenali via Cosine Similarity dan selalu masuk <strong>Tier 2 (Konfirmasi Kasir)</strong> — tidak pernah auto-add Tier 1.
               </p>
+            </div>
+            <span className="font-mono font-bold text-base text-admin shrink-0">
+              Min Similarity ≥ {embeddingMinSim}%
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <div className="space-y-1">
               <input
                 type="range"
                 min="50"
                 max="95"
-                step="5"
-                value={highThreshold}
-                onChange={(e) => setHighThreshold(Number(e.target.value))}
-                className="w-full accent-emerald-600 cursor-pointer"
+                step="1"
+                value={embeddingMinSim}
+                onChange={(e) => setEmbeddingMinSim(Number(e.target.value))}
+                disabled={!enableHybridEmbedding}
+                className="w-full accent-admin cursor-pointer disabled:opacity-50"
               />
-              <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={autoAddHigh}
-                  onChange={(e) => setAutoAddHigh(e.target.checked)}
-                  className="rounded border-fg"
-                />
-                Auto-add ke keranjang transaksi
-              </label>
-            </div>
-
-            {/* Tier 2 */}
-            <div className="p-4 rounded-lg border-2 border-fg bg-amber-50/40 dark:bg-amber-950/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-heading font-bold text-xs uppercase text-amber-800 dark:text-amber-300">
-                  Tier 2 — Medium Confidence
-                </span>
-                <span className="font-mono font-bold text-base text-amber-700 dark:text-amber-400">
-                  {mediumThreshold}% – {highThreshold - 1}%
-                </span>
+              <div className="flex justify-between text-[10px] font-mono text-muted-fg">
+                <span>50% (Sensitif)</span>
+                <span>78% (Standar)</span>
+                <span>95% (Ketat)</span>
               </div>
-              <p className="text-[11px] text-muted-fg leading-relaxed">
-                Tampilkan dialog Top-3 produk kandidat agar kasir memilih produk yang tepat dengan 1 sentuhan.
-              </p>
-              <input
-                type="range"
-                min="15"
-                max="50"
-                step="5"
-                value={mediumThreshold}
-                onChange={(e) => setMediumThreshold(Number(e.target.value))}
-                className="w-full accent-amber-600 cursor-pointer"
-              />
-              <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={showTop3}
-                  onChange={(e) => setShowTop3(e.target.checked)}
-                  className="rounded border-fg"
-                />
-                Tampilkan popup Top-3 kandidat kasir
-              </label>
             </div>
-
-            {/* Tier 3 */}
-            <div className="p-4 rounded-lg border-2 border-fg bg-rose-50/40 dark:bg-rose-950/20 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="font-heading font-bold text-xs uppercase text-rose-800 dark:text-rose-300">
-                  Tier 3 — Low Confidence
-                </span>
-                <span className="font-mono font-bold text-base text-rose-700 dark:text-rose-400">
-                  &lt; {mediumThreshold}%
-                </span>
-              </div>
-              <p className="text-[11px] text-muted-fg leading-relaxed">
-                Kemasan tidak terdeteksi atau tidak yakin. Otomatis alihkan ke pemindaian Barcode Scanner atau input manual.
-              </p>
-              <div className="pt-4 text-xs font-mono text-muted-fg">Fallback Trigger</div>
-              <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={fallbackBarcode}
-                  onChange={(e) => setFallbackBarcode(e.target.checked)}
-                  className="rounded border-fg"
-                />
-                Peringatan fallback ke pemindai barcode
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {/* Modal Deploy / Aktifkan Model */}
-        <Modal
-          open={activateModalOpen}
-          onClose={() => setActivateModalOpen(false)}
-          title="Deploy Model AI ke Production POS"
-          className="max-w-md"
-        >
-          <div className="space-y-3 text-xs font-body">
-            <p className="text-muted-fg">
-              Anda akan mengaktifkan versi model <strong className="text-fg">{modelToActivate?.versi}</strong> ({modelToActivate?.arsitektur}) sebagai model inferensi utama pada seluruh terminal POS kasir.
-            </p>
-
-            <div>
-              <label className="block text-[11px] font-bold mb-1">Versi Rilis POS (Override jika diperlukan):</label>
-              <input
-                type="text"
-                value={versionOverrideInput}
-                onChange={(e) => setVersionOverrideInput(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono focus:outline-none"
-              />
-            </div>
-
-            <div className="p-3 rounded border-2 border-fg bg-amber-50 text-amber-900 text-[11px] flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>Semua terminal kasir yang sedang aktif akan otomatis mengunduh bundel bobot versi baru ini pada siklus cache berikutnya.</span>
-            </div>
-
-            <div className="pt-3 border-t border-border flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setActivateModalOpen(false)}>
-                Batal
-              </Button>
-              <Button variant="admin" onClick={handleActivateSubmit} disabled={submitting}>
-                {submitting ? "Mengaktifkan..." : "Konfirmasi & Deploy"}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-
-        {/* Modal Sync Storage */}
-        <Modal
-          open={syncModalOpen}
-          onClose={() => setSyncModalOpen(false)}
-          title="Sinkronisasi Model dari Supabase Storage"
-          className="max-w-md"
-        >
-          <div className="space-y-3 text-xs font-body">
-            <p className="text-muted-fg">
-              Masukkan subfolder versi yang ada di bucket <code>ai-models/</code> pada Supabase Storage (misalnya <code>v1.2.20260912</code>):
-            </p>
-            <div>
-              <label className="block text-[11px] font-bold mb-1">Folder Versi:</label>
-              <input
-                type="text"
-                value={syncVersi}
-                onChange={(e) => setSyncVersi(e.target.value)}
-                className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono focus:outline-none"
-              />
-            </div>
-            <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer">
               <input
                 type="checkbox"
-                checked={syncSetAktif}
-                onChange={(e) => setSyncSetAktif(e.target.checked)}
-                className="rounded border-fg"
+                checked={enableHybridEmbedding}
+                onChange={(e) => setEnableHybridEmbedding(e.target.checked)}
+                className="rounded border-fg accent-admin"
               />
-              Langsung aktifkan ke Production POS setelah sync (default: masuk Staging)
+              Aktifkan deteksi embedding instan per toko pada model v2
             </label>
-            <div className="pt-3 border-t border-border flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setSyncModalOpen(false)}>
-                Batal
-              </Button>
-              <Button variant="admin" onClick={handleSyncStorage} disabled={submitting}>
-                {submitting ? "Menyinkronkan..." : "Sync Sekarang"}
-              </Button>
-            </div>
           </div>
-        </Modal>
-
-        {/* Model Detail Modal */}
-        <ModelDetailModal
-          model={detailModalModel}
-          open={!!detailModalModel}
-          onClose={() => setDetailModalModel(null)}
-        />
-
-        {/* Confirm Delete Model Modal */}
-        <ConfirmModal
-          open={Boolean(deleteTargetModel)}
-          onClose={() => setDeleteTargetModel(null)}
-          onConfirm={handleConfirmDeleteModel}
-          title="Hapus Model dari Registri?"
-          message={`Apakah Anda yakin ingin menghapus versi model "${deleteTargetModel?.versi || ""}" dari registri?`}
-          variant="danger"
-          confirmText={submitting ? "Menghapus..." : "Ya, Hapus"}
-          cancelText="Batal"
-        />
+        </div>
       </div>
-      );
+
+      {/* 4. Monitoring Embedding Toko (Model v2) */}
+      <EmbeddingMonitorSection activeModelVersion={activeModel?.versi} />
+
+      {/* Modal Deploy / Aktifkan Model */}
+      <Modal
+        open={activateModalOpen}
+        onClose={() => setActivateModalOpen(false)}
+        title="Deploy Model AI ke Production POS"
+        className="max-w-md"
+      >
+        <div className="space-y-3 text-xs font-body">
+          <p className="text-muted-fg">
+            Anda akan mengaktifkan versi model <strong className="text-fg">{modelToActivate?.versi}</strong> ({modelToActivate?.arsitektur}) sebagai model inferensi utama pada seluruh terminal POS kasir.
+          </p>
+
+          <div>
+            <label className="block text-[11px] font-bold mb-1">Versi Rilis POS (Override jika diperlukan):</label>
+            <input
+              type="text"
+              value={versionOverrideInput}
+              onChange={(e) => setVersionOverrideInput(e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono focus:outline-none"
+            />
+          </div>
+
+          <div className="p-3 rounded border-2 border-fg bg-amber-50 text-amber-900 text-[11px] flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Semua terminal kasir yang sedang aktif akan otomatis mengunduh bundel bobot versi baru ini pada siklus cache berikutnya.</span>
+          </div>
+
+          <div className="pt-3 border-t border-border flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setActivateModalOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="admin" onClick={handleActivateSubmit} disabled={submitting}>
+              {submitting ? "Mengaktifkan..." : "Konfirmasi & Deploy"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Modal Sync Storage */}
+      <Modal
+        open={syncModalOpen}
+        onClose={() => setSyncModalOpen(false)}
+        title="Sinkronisasi Model dari Supabase Storage"
+        className="max-w-md"
+      >
+        <div className="space-y-3 text-xs font-body">
+          <p className="text-muted-fg">
+            Masukkan subfolder versi yang ada di bucket <code>ai-models/</code> pada Supabase Storage (misalnya <code>v1.2.20260912</code>):
+          </p>
+          <div>
+            <label className="block text-[11px] font-bold mb-1">Folder Versi:</label>
+            <input
+              type="text"
+              value={syncVersi}
+              onChange={(e) => setSyncVersi(e.target.value)}
+              className="w-full px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-mono focus:outline-none"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-[11px] font-semibold cursor-pointer">
+            <input
+              type="checkbox"
+              checked={syncSetAktif}
+              onChange={(e) => setSyncSetAktif(e.target.checked)}
+              className="rounded border-fg"
+            />
+            Langsung aktifkan ke Production POS setelah sync (default: masuk Staging)
+          </label>
+          <div className="pt-3 border-t border-border flex justify-end gap-2">
+            <Button variant="outline" onClick={() => setSyncModalOpen(false)}>
+              Batal
+            </Button>
+            <Button variant="admin" onClick={handleSyncStorage} disabled={submitting}>
+              {submitting ? "Menyinkronkan..." : "Sync Sekarang"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Model Detail Modal */}
+      <ModelDetailModal
+        model={detailModalModel}
+        open={!!detailModalModel}
+        onClose={() => setDetailModalModel(null)}
+      />
+
+      {/* Confirm Delete Model Modal */}
+      <ConfirmModal
+        open={Boolean(deleteTargetModel)}
+        onClose={() => setDeleteTargetModel(null)}
+        onConfirm={handleConfirmDeleteModel}
+        title="Hapus Model dari Registri?"
+        message={`Apakah Anda yakin ingin menghapus versi model "${deleteTargetModel?.versi || ""}" dari registri?`}
+        variant="danger"
+        confirmText={submitting ? "Menghapus..." : "Ya, Hapus"}
+        cancelText="Batal"
+      />
+    </div>
+  );
 }
 

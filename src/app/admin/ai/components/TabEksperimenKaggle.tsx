@@ -35,7 +35,7 @@ export function TabEksperimenKaggle({ researchSummary, onRefresh }: TabEksperime
 
         <KaggleAutomationPanel
           trainForm={vm.trainForm}
-          trainStatus={vm.trainStatus}
+          trainStatus={vm.trackStates[vm.trainForm.target_track || "v1"].status}
           deltaMetrics={vm.deltaMetrics}
           schedulerStatus={vm.schedulerStatus}
           isTriggeringAutoTrain={vm.isTriggeringAutoTrain}
@@ -54,6 +54,14 @@ export function TabEksperimenKaggle({ researchSummary, onRefresh }: TabEksperime
       />
 
       <KaggleTrainingPipelineSection
+        selectedTrack={vm.selectedTrack}
+        onSelectTrack={vm.setSelectedTrack}
+        trackStatuses={{
+          v1: vm.trackStates.v1.status,
+          v2: vm.trackStates.v2.status,
+        }}
+        otherTrackRunning={vm.otherTrackRunning}
+        kaggleInfo={vm.kaggleInfo}
         kaggleUrl={vm.kaggleUrl}
         trainStatus={vm.trainStatus}
         elapsed={vm.elapsed}
@@ -61,10 +69,10 @@ export function TabEksperimenKaggle({ researchSummary, onRefresh }: TabEksperime
         trainError={vm.trainError}
         isFetchingOutput={vm.isFetchingOutput}
         researchSummary={researchSummary}
-        onResetTraining={vm.handleResetTraining}
-        onCheckStatus={vm.checkStatus}
-        onFetchLatestOutput={vm.handleFetchLatestOutput}
-        onTriggerTrain={vm.handleTriggerTrain}
+        onResetTraining={() => vm.handleResetTraining(vm.selectedTrack)}
+        onCheckStatus={() => vm.checkStatus(vm.selectedTrack)}
+        onFetchLatestOutput={() => vm.handleFetchLatestOutput(vm.selectedTrack)}
+        onTriggerTrain={() => vm.handleTriggerTrain(vm.selectedTrack)}
       />
 
       <ConfirmModal

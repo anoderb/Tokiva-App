@@ -26,7 +26,12 @@ interface AiVisionCameraPaneProps {
   onSelectCandidate: (
     cand: AiDetectionCandidate,
     unit: ProdukSatuan | "base",
-    meta?: { isCorrection: boolean; predictedKelasId?: string; predictedConfidence?: number }
+    meta?: {
+      isCorrection?: boolean;
+      predictedKelasId?: string;
+      predictedConfidence?: number;
+      detectionMethod?: "softmax" | "embedding";
+    }
   ) => void;
   onManualUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onResetCooldown: () => void;
@@ -56,18 +61,16 @@ export function AiVisionCameraPane({
   return (
     <div className="lg:col-span-7 flex flex-col gap-2.5">
       <div
-        className={`relative bg-slate-950 rounded-lg overflow-hidden aspect-[4/3] flex items-center justify-center border-2 border-fg transition-all duration-200 ${
-          scanFlash ? "ring-4 ring-emerald-400 border-emerald-500 scale-[1.01]" : ""
-        }`}
+        className={`relative bg-slate-950 rounded-lg overflow-hidden aspect-[4/3] flex items-center justify-center border-2 border-fg transition-all duration-200 ${scanFlash ? "ring-4 ring-emerald-400 border-emerald-500 scale-[1.01]" : ""
+          }`}
       >
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className={`w-full h-full object-cover transition-opacity duration-200 ${
-            camStatus === "active" ? "opacity-100" : "opacity-0"
-          }`}
+          className={`w-full h-full object-cover transition-opacity duration-200 ${camStatus === "active" ? "opacity-100" : "opacity-0"
+            }`}
         />
 
         <CameraPermissionOverlay
@@ -94,13 +97,12 @@ export function AiVisionCameraPane({
 
         {camStatus === "active" && (
           <div
-            className={`absolute inset-7 border-2 border-dashed rounded-lg pointer-events-none transition-colors duration-200 flex flex-col justify-between p-3 ${
-              scanFlash
-                ? "border-emerald-400 bg-emerald-500/15"
-                : cooldownSec > 0
+            className={`absolute inset-7 border-2 border-dashed rounded-lg pointer-events-none transition-colors duration-200 flex flex-col justify-between p-3 ${scanFlash
+              ? "border-emerald-400 bg-emerald-500/15"
+              : cooldownSec > 0
                 ? "border-amber-400/80 bg-amber-500/5"
                 : "border-white/40"
-            }`}
+              }`}
           >
             <div className="flex justify-between items-center text-[10px] font-mono text-white/70">
               <span className="bg-black/60 px-1.5 py-0.5 rounded">Scanning AI Aktif</span>
@@ -133,82 +135,104 @@ export function AiVisionCameraPane({
           <div className="absolute top-2 left-2 right-2 p-2 rounded-md bg-black/85 backdrop-blur-md border border-white/20 flex items-center justify-between text-white text-xs">
             <div className="flex items-center gap-2 truncate">
               <span
-                className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                  liveCandidate.confidence >= highThreshold * 100 ? "bg-emerald-400 animate-ping" : "bg-amber-400"
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${liveCandidate.detectionMethod === "embedding"
+                  ? "bg-violet-400"
+                  : liveCandidate.confidence >= highThreshold * 100
+                      ? "bg-emerald-400 animate-ping"
+                      : "bg-amber-400"
                 }`}
               />
               <span className="font-bold truncate font-mono text-xs">{liveCandidate.product.nama}</span>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
+              {liveCandidate.detectionMethod === "embedding" && (
+                <span className="px-1.5 py-0.5 rounded font-bold text-[9px] bg-violet-500/25 text-violet-300 border border-violet-400">
+                  Embed Baru
+                </span>
+              )}
               <span
-                className={`px-1.5 py-0.5 rounded font-bold font-mono text-[10px] border ${
-                  liveCandidate.confidence >= highThreshold * 100
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500"
-                    : "bg-amber-500/20 text-amber-400 border-amber-500"
+              className={`px-1.5 py-0.5 rounded font-bold font-mono text-[10px] border ${liveCandidate.detectionMethod === "embedding"
+                  ? "bg-amber-500/20 text-amber-300 border-amber-400"
+                  : liveCandidate.confidence >= highThreshold * 100
+                      ? "bg-emerald-500/20 text-emerald-400 border-emerald-500"
+                      : "bg-amber-500/20 text-amber-400 border-amber-500"
                 }`}
               >
-                {liveCandidate.confidence}%
-              </span>
+            {liveCandidate.confidence}%
+          </span>
             </div>
-          </div>
-        )}
-      </div>
-
-      {alternativePicks.length > 0 && (
-        <div className="p-2 rounded-md border-2 border-amber-500 bg-amber-50/90 dark:bg-amber-950/40 space-y-1.5">
-          <div className="flex items-center justify-between text-[11px]">
-            <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
-              <Zap className="w-3 h-3 text-amber-600" /> Deteksi Sedang (Ketuk Cepat untuk Menambah):
-            </span>
-            <span className="text-[10px] font-mono text-muted-fg">1-Tap Add</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {alternativePicks.map((cand, i) => (
-              <button
-                key={cand.product.id || i}
-                type="button"
-                onClick={() =>
-                  onSelectCandidate(
-                    cand,
-                    "base",
-                    i > 0
-                      ? {
-                          isCorrection: true,
-                          predictedKelasId: alternativePicks[0]?.kelasId,
-                          predictedConfidence: alternativePicks[0]?.confidence,
-                        }
-                      : undefined
-                  )
-                }
-                className="p-1.5 rounded border border-fg bg-card hover:bg-accent hover:text-white transition-colors text-left flex flex-col justify-between text-[11px] font-bold truncate shadow-sm cursor-pointer"
-              >
-                <span className="truncate block font-body">{cand.product.nama}</span>
-                <div className="flex items-center justify-between text-[10px] text-muted-fg mt-0.5">
-                  <span className="text-accent font-bold">Rp{Number(cand.product.harga_jual).toLocaleString("id-ID")}</span>
-                  <span>{cand.confidence}%</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <div className="flex items-center gap-2">
-        <label className="flex-1 py-1.5 px-3 rounded-md border-2 border-fg bg-card hover:bg-muted font-heading font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_var(--shadow-color)]">
-          <Upload className="w-3.5 h-3.5 text-accent" />
-          <span>{isAnalyzingManual ? "Menganalisis..." : "Unggah Foto Pengganti"}</span>
-          <input type="file" accept="image/*" onChange={onManualUpload} className="hidden" disabled={isAnalyzingManual} />
-        </label>
-
-        <button
-          type="button"
-          onClick={onResetCooldown}
-          className="py-1.5 px-2.5 rounded-md border-2 border-fg bg-muted hover:bg-muted/80 text-xs font-bold text-muted-fg hover:text-fg"
-          title="Reset cooldown sekarang"
-        >
-          Reset Sensor
-        </button>
-      </div>
     </div>
+        )
+}
+    </div >
+
+{
+  alternativePicks.length > 0 && (
+    <div className="p-2 rounded-md border-2 border-amber-500 bg-amber-50/90 dark:bg-amber-950/40 space-y-1.5">
+      <div className="flex items-center justify-between text-[11px]">
+        <span className="font-bold text-amber-800 dark:text-amber-300 flex items-center gap-1">
+          <Zap className="w-3 h-3 text-amber-600" /> Deteksi Sedang (Ketuk Cepat untuk Menambah):
+        </span>
+        <span className="text-[10px] font-mono text-muted-fg">1-Tap Add</span>
+      </div>
+      <div className="grid grid-cols-3 gap-1.5">
+        {alternativePicks.map((cand, i) => (
+          <button
+            key={cand.product.id || i}
+            type="button"
+            onClick={() =>
+              onSelectCandidate(
+                cand,
+                "base",
+                i > 0
+                  ? {
+                    isCorrection: true,
+                    predictedKelasId: alternativePicks[0]?.kelasId,
+                    predictedConfidence: alternativePicks[0]?.confidence,
+                    detectionMethod: cand.detectionMethod,
+                  }
+                  : {
+                    detectionMethod: cand.detectionMethod,
+                  }
+              )
+            }
+            className="p-1.5 rounded border border-fg bg-card hover:bg-accent hover:text-white transition-colors text-left flex flex-col justify-between text-[11px] font-bold truncate shadow-sm cursor-pointer"
+          >
+            <div className="flex items-center justify-between gap-1">
+              <span className="truncate block font-body">{cand.product.nama}</span>
+              {cand.detectionMethod === "embedding" && (
+                <span className="px-1 py-0.2 rounded text-[8px] font-bold bg-violet-100 text-violet-800 border border-violet-400 shrink-0">
+                  Baru
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between text-[10px] text-muted-fg mt-0.5">
+              <span className="text-accent font-bold">Rp{Number(cand.product.harga_jual).toLocaleString("id-ID")}</span>
+              <span>{cand.confidence}%</span>
+            </div>
+          </button>
+        ))}
+      </div>
+      </div>
+    )
+  }
+
+<div className="flex items-center gap-2">
+  <label className="flex-1 py-1.5 px-3 rounded-md border-2 border-fg bg-card hover:bg-muted font-heading font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer shadow-[2px_2px_0px_var(--shadow-color)]">
+    <Upload className="w-3.5 h-3.5 text-accent" />
+    <span>{isAnalyzingManual ? "Menganalisis..." : "Unggah Foto Pengganti"}</span>
+    <input type="file" accept="image/*" onChange={onManualUpload} className="hidden" disabled={isAnalyzingManual} />
+  </label>
+
+  <button
+    type="button"
+    onClick={onResetCooldown}
+    className="py-1.5 px-2.5 rounded-md border-2 border-fg bg-muted hover:bg-muted/80 text-xs font-bold text-muted-fg hover:text-fg"
+    title="Reset cooldown sekarang"
+  >
+    Reset Sensor
+  </button>
+</div>
+    </div >
   );
 }
