@@ -88,7 +88,7 @@ export function KaggleSyncPanel({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <Button type="button" onClick={() => onRunSyncNow(true)} disabled={isTriggeringSync || syncStatus === "running" || syncStatus === "processing"} className="text-xs font-bold shadow-pop-soft">
+        <Button type="button" variant="admin" onClick={() => onRunSyncNow(true)} disabled={isTriggeringSync || syncStatus === "running" || syncStatus === "processing"} className="text-xs font-bold shadow-pop-soft">
           {isTriggeringSync ? <><RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Mengirim...</> : <><Download className="w-3.5 h-3.5 mr-1.5" /> Tarik &amp; Perbarui Dataset Sekarang</>}
         </Button>
         <Button type="button" variant="outline" onClick={() => onRunSyncNow(false)} disabled={isTriggeringSync || syncStatus === "running" || syncStatus === "processing"} className="text-xs font-bold">
@@ -99,8 +99,8 @@ export function KaggleSyncPanel({
       <div className="p-3.5 rounded-md border-2 border-fg bg-muted/30 space-y-3 text-xs">
         <div className="flex items-center justify-between">
           <label className="flex items-center gap-2 font-bold cursor-pointer">
-            <input type="checkbox" checked={syncForm.enabled} onChange={(e) => onChangeSyncForm((prev) => ({ ...prev, enabled: e.target.checked }))} className="w-4 h-4 accent-accent" />
-            <Calendar className="w-3.5 h-3.5 text-accent" />
+            <input type="checkbox" checked={syncForm.enabled} onChange={(e) => onChangeSyncForm((prev) => ({ ...prev, enabled: e.target.checked }))} className="w-4 h-4 accent-admin" />
+            <Calendar className="w-3.5 h-3.5 text-admin" />
             <span>Aktifkan Cronjob Sync Otomatis (WIB)</span>
           </label>
           <Badge variant={schedulerStatus?.dataset_sync_scheduled ? "green" : "gray"}>{schedulerStatus?.dataset_sync_cron || "Nonaktif"}</Badge>
@@ -132,13 +132,13 @@ export function KaggleSyncPanel({
         </div>
 
         <label className="flex items-center gap-2 cursor-pointer text-[11px]">
-          <input type="checkbox" checked={syncForm.auto_sync_supabase_to_hf} onChange={(e) => onChangeSyncForm((prev) => ({ ...prev, auto_sync_supabase_to_hf: e.target.checked }))} className="w-3.5 h-3.5 accent-accent" />
+          <input type="checkbox" checked={syncForm.auto_sync_supabase_to_hf} onChange={(e) => onChangeSyncForm((prev) => ({ ...prev, auto_sync_supabase_to_hf: e.target.checked }))} className="w-3.5 h-3.5 accent-admin" />
           <span>Otomatis dorong foto terverifikasi Supabase → HF sebelum sync Kaggle</span>
         </label>
 
         <div className="flex items-center justify-between pt-1">
           <span className="text-[11px] text-muted-fg">Cek terakhir: {formatWibTime(syncForm.last_checked_at)}</span>
-          <Button type="button" size="sm" onClick={onSaveSyncConfig} disabled={isSavingSync} className="text-xs font-bold">
+          <Button type="button" size="sm" variant="admin" onClick={onSaveSyncConfig} disabled={isSavingSync} className="text-xs font-bold">
             <Save className="w-3.5 h-3.5 mr-1" />{isSavingSync ? "Menyimpan..." : "Simpan Jadwal Sync"}
           </Button>
         </div>

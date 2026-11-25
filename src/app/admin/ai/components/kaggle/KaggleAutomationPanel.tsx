@@ -38,7 +38,7 @@ export function KaggleAutomationPanel({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b-2 border-border pb-3">
         <div>
           <div className="flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-accent" />
+            <Cpu className="w-5 h-5 text-admin" />
             <h3 className="font-heading font-black text-base">Otomatisasi Training GPU (Cron &amp; Event)</h3>
             <Badge variant="purple">Smart Delta</Badge>
           </div>
@@ -70,8 +70,8 @@ export function KaggleAutomationPanel({
 
       <div className="p-3.5 rounded-md border-2 border-fg bg-muted/30 space-y-3 text-xs">
         <label className="flex items-center gap-2 font-bold cursor-pointer">
-          <input type="checkbox" checked={trainForm.enabled} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, enabled: e.target.checked }))} className="w-4 h-4 accent-accent" />
-          <Clock className="w-3.5 h-3.5 text-accent" />
+          <input type="checkbox" checked={trainForm.enabled} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, enabled: e.target.checked }))} className="w-4 h-4 accent-admin" />
+          <Clock className="w-3.5 h-3.5 text-admin" />
           <span>Aktifkan Pelatihan Otomatis GPU T4x2</span>
         </label>
 
@@ -122,7 +122,7 @@ export function KaggleAutomationPanel({
         )}
 
         <label className="flex items-center gap-2 cursor-pointer text-[11px]">
-          <input type="checkbox" checked={trainForm.auto_activate_if_better} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, auto_activate_if_better: e.target.checked }))} className="w-3.5 h-3.5 accent-accent" />
+          <input type="checkbox" checked={trainForm.auto_activate_if_better} onChange={(e) => onChangeTrainForm((prev) => ({ ...prev, auto_activate_if_better: e.target.checked }))} className="w-3.5 h-3.5 accent-admin" />
           <span>Auto-aktifkan model baru ke POS jika akurasi &ge; model aktif saat ini</span>
         </label>
 
@@ -131,7 +131,7 @@ export function KaggleAutomationPanel({
             <RefreshCw className={`w-3.5 h-3.5 mr-1 ${isTriggeringAutoTrain ? "animate-spin" : ""}`} />
             Uji Cek Delta Training
           </Button>
-          <Button type="button" size="sm" onClick={onSaveTrainConfig} disabled={isSavingTrain} className="text-xs font-bold">
+          <Button type="button" size="sm" variant="admin" onClick={onSaveTrainConfig} disabled={isSavingTrain} className="text-xs font-bold">
             <Save className="w-3.5 h-3.5 mr-1" />{isSavingTrain ? "Menyimpan..." : "Simpan Jadwal Training"}
           </Button>
         </div>

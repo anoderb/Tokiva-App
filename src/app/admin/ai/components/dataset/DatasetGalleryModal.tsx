@@ -74,7 +74,7 @@ export function DatasetGalleryModal({
               <button
                 type="button"
                 onClick={() => onChangeFilter("semua")}
-                className={`px-2 py-0.5 rounded border text-[11px] font-bold ${galleryFilter === "semua" ? "bg-accent text-accent-fg border-fg" : "bg-card text-muted-fg"}`}
+                className={`px-2 py-0.5 rounded border text-[11px] font-bold ${galleryFilter === "semua" ? "bg-admin text-white border-fg" : "bg-card text-muted-fg"}`}
               >
                 Semua ({galleryClass?.total_foto ?? galleryTotal})
               </button>
@@ -139,7 +139,7 @@ export function DatasetGalleryModal({
                     <div
                       key={photo.id}
                       className={`relative aspect-square rounded-md border-2 overflow-hidden group cursor-pointer transition-all ${
-                        isSelected ? "border-accent ring-2 ring-accent" : "border-fg hover:border-accent"
+                        isSelected ? "border-admin ring-2 ring-admin" : "border-fg hover:border-admin"
                       }`}
                     >
                       <ProductImage src={photo.foto_url} alt={photo.nama_file} className="w-full h-full object-cover" />

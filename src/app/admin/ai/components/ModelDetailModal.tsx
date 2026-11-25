@@ -39,7 +39,7 @@ export function ModelDetailModal({ model, open, onClose }: ModelDetailModalProps
         {/* Header Hero */}
         <div className="flex items-center justify-between p-3 rounded-lg border-2 border-fg bg-muted/30">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-md bg-accent/20 border-2 border-fg flex items-center justify-center text-accent">
+            <div className="w-10 h-10 rounded-md bg-admin/20 border-2 border-fg flex items-center justify-center text-admin">
               <Cpu className="w-5 h-5" />
             </div>
             <div>
@@ -152,8 +152,8 @@ export function ModelDetailModal({ model, open, onClose }: ModelDetailModalProps
             <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400 text-[11px] uppercase">
               <AlertTriangle className="w-3.5 h-3.5" /> Kesalahan Prediksi Terbanyak (Confusion Matrix Analysis)
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[11px]">
+            <div className="overflow-x-auto w-full">
+              <table className="w-full min-w-[460px] text-left text-[11px]">
                 <thead className="bg-muted border-b border-border text-muted-fg uppercase text-[10px]">
                   <tr>
                     <th className="py-1 px-2">Label Sebenarnya</th>

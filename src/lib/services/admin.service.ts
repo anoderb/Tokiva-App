@@ -154,8 +154,12 @@ export const adminService = {
     harga_saran?: number | null;
     foto_url?: string | null;
     terverifikasi?: boolean;
-  }): Promise<ProdukMaster> {
-    return api.post<ProdukMaster>('/admin/produk-master', payload);
+    buat_kelas_ai?: boolean;
+  }): Promise<ProdukMaster & { ai_kelas?: any; ai_kelas_status?: 'created' | 'linked' }> {
+    return api.post<ProdukMaster & { ai_kelas?: any; ai_kelas_status?: 'created' | 'linked' }>(
+      '/admin/produk-master',
+      payload
+    );
   },
 
   updateProdukMaster(

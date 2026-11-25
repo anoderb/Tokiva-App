@@ -69,6 +69,7 @@ export default function AdminProdukGlobalPage() {
     harga_saran: "",
     foto_url: "",
     terverifikasi: true,
+    buat_kelas_ai: false,
   });
 
   useEffect(() => {
@@ -129,6 +130,7 @@ export default function AdminProdukGlobalPage() {
       harga_saran: "",
       foto_url: "",
       terverifikasi: true,
+      buat_kelas_ai: false,
     });
     setFormOpen(true);
   };
@@ -148,6 +150,7 @@ export default function AdminProdukGlobalPage() {
       harga_saran: item.harga_saran != null ? String(item.harga_saran) : "",
       foto_url: item.foto_url || "",
       terverifikasi: item.terverifikasi ?? true,
+      buat_kelas_ai: false,
     });
     setFormOpen(true);
   };
@@ -203,8 +206,17 @@ export default function AdminProdukGlobalPage() {
         await adminService.updateProdukMaster(editingItem.id, payload);
         toast.success(`Produk "${formData.nama}" berhasil diperbarui.`);
       } else {
-        await adminService.createProdukMaster(payload);
-        toast.success(`Produk "${formData.nama}" berhasil ditambahkan ke katalog global.`);
+        const res = await adminService.createProdukMaster({
+          ...payload,
+          buat_kelas_ai: formData.buat_kelas_ai,
+        });
+        if (res?.ai_kelas_status === "created") {
+          toast.success(`Produk "${formData.nama}" ditambahkan ke katalog global & Kelas AI baru dibuat.`);
+        } else if (res?.ai_kelas_status === "linked") {
+          toast.success(`Produk "${formData.nama}" ditambahkan ke katalog global & ditautkan ke Kelas AI yang sudah ada.`);
+        } else {
+          toast.success(`Produk "${formData.nama}" berhasil ditambahkan ke katalog global.`);
+        }
       }
       setFormOpen(false);
       loadProducts();
@@ -618,9 +630,24 @@ export default function AdminProdukGlobalPage() {
               type="checkbox"
               checked={formData.terverifikasi}
               onChange={(e) => setFormData({ ...formData, terverifikasi: e.target.checked })}
+              className="w-4 h-4 accent-admin"
             />
             <span className="font-semibold">Tandai Terverifikasi di Katalog Global</span>
           </label>
+
+          {!editingItem && (
+            <label className="flex items-center gap-2 p-2.5 rounded-md border-2 border-fg bg-purple-50/40 dark:bg-purple-950/20 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.buat_kelas_ai}
+                onChange={(e) => setFormData({ ...formData, buat_kelas_ai: e.target.checked })}
+                className="w-4 h-4 accent-admin"
+              />
+              <span className="font-semibold">
+                Sekaligus tambahkan ke Kelas Dataset AI (terhubung otomatis)
+              </span>
+            </label>
+          )}
         </div>
       </Modal>
 

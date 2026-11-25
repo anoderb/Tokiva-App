@@ -219,8 +219,8 @@ export function TabEvaluasiHeadToHead({
   const activeArsLower = String(activeModel?.arsitektur || "").toLowerCase();
   const isActiveMatchesBest = Boolean(
     activeModel &&
-      ((bestExpName.includes("CBAM") && activeArsLower.includes("cbam")) ||
-        (!bestExpName.includes("CBAM") && !activeArsLower.includes("cbam")))
+    ((bestExpName.includes("CBAM") && activeArsLower.includes("cbam")) ||
+      (!bestExpName.includes("CBAM") && !activeArsLower.includes("cbam")))
   );
 
   // Dynamic diffs for Matrix
@@ -535,459 +535,474 @@ export function TabEvaluasiHeadToHead({
       <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
         <div className="flex items-center justify-between gap-2 border-b-2 border-border pb-3">
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-accent" />
+            <Layers className="w-5 h-5 text-admin shrink-0" />
             <h4 className="font-heading font-bold text-base">
               Matriks Perbandingan Head-to-Head (E1 Baseline vs E2 CBAM)
             </h4>
           </div>
-          <span className="text-[11px] font-mono text-muted-fg">
+          <span className="text-[11px] font-mono text-muted-fg shrink-0">
             Metrik Bab II &amp; III Skripsi
           </span>
         </div>
 
         <div className="border-2 border-fg rounded-md overflow-hidden bg-card">
-          <table className="w-full text-left text-xs font-body">
-            <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg">
-              <tr>
-                <th className="py-2.5 px-3">Metrik Evaluasi Ilmiah</th>
-                <th className="py-2.5 px-3 bg-lime-50/50 dark:bg-lime-950/20 text-lime-900 dark:text-lime-200">
-                  E1: MobileNetV3 (Baseline) {bestExpName === "E1_MobileNetV3" ? "🏆" : ""}
-                </th>
-                <th className="py-2.5 px-3 bg-purple-50/50 dark:bg-purple-950/20 text-purple-900 dark:text-purple-200">
-                  E2: MobileNetV3 + CBAM (Proposed){" "}
-                  {bestExpName === "E2_MobileNetV3_CBAM" ? "🏆" : ""}
-                </th>
-                <th className="py-2.5 px-3">Selisih &amp; Analisis</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y border-border">
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Top-1 Accuracy</td>
-                <td className="py-2.5 px-3 font-heading font-bold text-emerald-600 bg-lime-50/30 dark:bg-lime-950/10 text-sm">
-                  {formatMetric(e1?.accuracy)}
-                </td>
-                <td className="py-2.5 px-3 font-heading font-bold text-teal-600 bg-purple-50/30 dark:bg-purple-950/10 text-sm">
-                  {formatMetric(e2?.accuracy)}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {formatPpDiff(e1?.accuracy, e2?.accuracy)}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Macro Precision</td>
-                <td className="py-2.5 px-3 font-mono font-bold bg-lime-50/30 dark:bg-lime-950/10">
-                  {formatMetric(e1?.precision_macro)}
-                </td>
-                <td className="py-2.5 px-3 font-mono font-bold bg-purple-50/30 dark:bg-purple-950/10">
-                  {formatMetric(e2?.precision_macro)}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {formatPpDiff(e1?.precision_macro, e2?.precision_macro)}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Macro Recall</td>
-                <td className="py-2.5 px-3 font-mono font-bold bg-lime-50/30 dark:bg-lime-950/10">
-                  {formatMetric(e1?.recall_macro)}
-                </td>
-                <td className="py-2.5 px-3 font-mono font-bold bg-purple-50/30 dark:bg-purple-950/10">
-                  {formatMetric(e2?.recall_macro)}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {formatPpDiff(e1?.recall_macro, e2?.recall_macro)}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Macro F1-Score</td>
-                <td className="py-2.5 px-3 font-heading font-bold text-emerald-600 bg-lime-50/30 dark:bg-lime-950/10">
-                  {formatMetric(e1?.f1_macro)}
-                </td>
-                <td className="py-2.5 px-3 font-heading font-bold text-teal-600 bg-purple-50/30 dark:bg-purple-950/10">
-                  {formatMetric(e2?.f1_macro)}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {formatPpDiff(e1?.f1_macro, e2?.f1_macro)}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Inference Latency (Kaggle GPU / Keras)</td>
-                <td className="py-2.5 px-3 font-mono font-bold text-amber-600 bg-lime-50/30 dark:bg-lime-950/10">
-                  {formatLatencyText(e1)}
-                </td>
-                <td className="py-2.5 px-3 font-mono font-bold text-amber-600 bg-purple-50/30 dark:bg-purple-950/10">
-                  {formatLatencyText(e2)}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {latencyDiffText}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Total Parameter Model</td>
-                <td className="py-2.5 px-3 font-mono bg-lime-50/30 dark:bg-lime-950/10">
-                  {e1?.parameters != null ? `${Number(e1.parameters).toLocaleString("id-ID")} parameter` : "—"}
-                </td>
-                <td className="py-2.5 px-3 font-mono bg-purple-50/30 dark:bg-purple-950/10">
-                  {e2?.parameters != null ? `${Number(e2.parameters).toLocaleString("id-ID")} parameter` : "—"}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {paramDiffText}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Ukuran Bundel TFJS</td>
-                <td className="py-2.5 px-3 font-mono bg-lime-50/30 dark:bg-lime-950/10">
-                  {e1?.model_size_mb_tensorflowjs != null
-                    ? `${Number(e1.model_size_mb_tensorflowjs).toFixed(2)} MB`
-                    : "—"}
-                </td>
-                <td className="py-2.5 px-3 font-mono bg-purple-50/30 dark:bg-purple-950/10">
-                  {e2?.model_size_mb_tensorflowjs != null
-                    ? `${Number(e2.model_size_mb_tensorflowjs).toFixed(2)} MB`
-                    : "—"}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {sizeDiffText}
-                </td>
-              </tr>
-
-              <tr>
-                <td className="py-2.5 px-3 font-semibold">Misclassified Samples</td>
-                <td className="py-2.5 px-3 font-mono font-bold text-rose-600 bg-lime-50/30 dark:bg-lime-950/10">
-                  {formatMisclassifiedText(e1, testPartitionTotal)}
-                </td>
-                <td className="py-2.5 px-3 font-mono font-bold text-rose-600 bg-purple-50/30 dark:bg-purple-950/10">
-                  {formatMisclassifiedText(e2, testPartitionTotal)}
-                </td>
-                <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                  {misclassifiedDiffText}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* 2b. Fase C: Benchmark Latensi Nyata Peramban (TensorFlow.js Client-Side) */}
-      <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-3">
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Gauge className="w-5 h-5 text-accent" />
-              <h4 className="font-heading font-bold text-base">
-                Benchmark Latensi Nyata Peramban (TensorFlow.js Client-Side)
-              </h4>
-              {tfBackendName && <Badge variant="blue">Backend: {tfBackendName.toUpperCase()}</Badge>}
-            </div>
-            <p className="text-xs text-muted-fg mt-0.5">
-              Mengukur waktu inferensi 1 citra (224×224×3) secara langsung di browser perangkat ini
-              menggunakan <code className="font-mono">@tensorflow/tfjs</code> untuk kebutuhan data uji Bab IV skripsi.
-            </p>
+          <div className="md:hidden px-3 py-1.5 bg-muted/50 border-b border-border text-[10px] font-semibold text-muted-fg flex items-center justify-between">
+            <span>Geser tabel ke samping untuk melihat seluruh kolom</span>
+            <span>↔</span>
           </div>
-
-          <div className="flex items-center gap-2 shrink-0">
-            <select
-              value={benchIterations}
-              onChange={(e) => setBenchIterations(Number(e.target.value) || 30)}
-              disabled={isBenchmarking}
-              className="px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-bold"
-            >
-              <option value={30}>30 iterasi (+5 warmup)</option>
-              <option value={50}>50 iterasi (+5 warmup)</option>
-              <option value={100}>100 iterasi (+5 warmup)</option>
-            </select>
-
-            <Button
-              type="button"
-              size="sm"
-              onClick={handleRunBrowserBenchmark}
-              disabled={isBenchmarking}
-              className="text-xs font-bold shadow-pop-soft"
-            >
-              {isBenchmarking ? (
-                <>
-                  <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menguji Browser...
-                </>
-              ) : (
-                <>
-                  <Cpu className="w-3.5 h-3.5 mr-1.5" /> Jalankan Benchmark Browser
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-
-        {benchResults.length > 0 ? (
-          <div className="border-2 border-fg rounded-md overflow-hidden">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[640px] text-left text-xs font-body">
               <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg">
                 <tr>
-                  <th className="py-2 px-3">Model Terdaftar</th>
-                  <th className="py-2 px-3">Versi</th>
-                  <th className="py-2 px-3">Load Time</th>
-                  <th className="py-2 px-3">Rata-Rata (ms/img)</th>
-                  <th className="py-2 px-3">Median / P95</th>
-                  <th className="py-2 px-3">Throughput (FPS)</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Metrik Evaluasi Ilmiah</th>
+                  <th className="py-2.5 px-3 bg-lime-50/50 dark:bg-lime-950/20 text-lime-900 dark:text-lime-200">
+                    E1: MobileNetV3 (Baseline) {bestExpName === "E1_MobileNetV3" ? "🏆" : ""}
+                  </th>
+                  <th className="py-2.5 px-3 bg-purple-50/50 dark:bg-purple-950/20 text-purple-900 dark:text-purple-200">
+                    E2: MobileNetV3 + CBAM (Proposed){" "}
+                    {bestExpName === "E2_MobileNetV3_CBAM" ? "🏆" : ""}
+                  </th>
+                  <th className="py-2.5 px-3">Selisih &amp; Analisis</th>
                 </tr>
               </thead>
               <tbody className="divide-y border-border">
-                {benchResults.map((b) => (
-                  <tr key={b.id} className="hover:bg-muted/25">
-                    <td className="py-2 px-3 font-semibold">
-                      <div className="flex items-center gap-1.5">
-                        <span>{b.label}</span>
-                        {b.aktif && <Badge variant="green">POS Aktif</Badge>}
-                      </div>
-                      <span className="text-[10px] text-muted-fg block">{b.arsitektur}</span>
-                    </td>
-                    <td className="py-2 px-3 font-mono">{b.versi}</td>
-                    {b.error ? (
-                      <td colSpan={4} className="py-2 px-3 text-rose-600 font-semibold">
-                        Error: {b.error}
-                      </td>
-                    ) : (
-                      <>
-                        <td className="py-2 px-3 font-mono">{Math.round(b.loadMs)} ms</td>
-                        <td className="py-2 px-3 font-heading font-bold text-amber-600">
-                          {b.meanMs.toFixed(2)} ms
-                        </td>
-                        <td className="py-2 px-3 font-mono text-muted-fg">
-                          {b.medianMs.toFixed(2)} / {b.p95Ms.toFixed(2)} ms
-                        </td>
-                        <td className="py-2 px-3 font-mono font-bold text-emerald-600">
-                          {b.fps.toFixed(1)} FPS
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                ))}
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Top-1 Accuracy</td>
+                  <td className="py-2.5 px-3 font-heading font-bold text-emerald-600 bg-lime-50/30 dark:bg-lime-950/10 text-sm">
+                    {formatMetric(e1?.accuracy)}
+                  </td>
+                  <td className="py-2.5 px-3 font-heading font-bold text-teal-600 bg-purple-50/30 dark:bg-purple-950/10 text-sm">
+                    {formatMetric(e2?.accuracy)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {formatPpDiff(e1?.accuracy, e2?.accuracy)}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Macro Precision</td>
+                  <td className="py-2.5 px-3 font-mono font-bold bg-lime-50/30 dark:bg-lime-950/10">
+                    {formatMetric(e1?.precision_macro)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono font-bold bg-purple-50/30 dark:bg-purple-950/10">
+                    {formatMetric(e2?.precision_macro)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {formatPpDiff(e1?.precision_macro, e2?.precision_macro)}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Macro Recall</td>
+                  <td className="py-2.5 px-3 font-mono font-bold bg-lime-50/30 dark:bg-lime-950/10">
+                    {formatMetric(e1?.recall_macro)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono font-bold bg-purple-50/30 dark:bg-purple-950/10">
+                    {formatMetric(e2?.recall_macro)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {formatPpDiff(e1?.recall_macro, e2?.recall_macro)}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Macro F1-Score</td>
+                  <td className="py-2.5 px-3 font-heading font-bold text-emerald-600 bg-lime-50/30 dark:bg-lime-950/10">
+                    {formatMetric(e1?.f1_macro)}
+                  </td>
+                  <td className="py-2.5 px-3 font-heading font-bold text-teal-600 bg-purple-50/30 dark:bg-purple-950/10">
+                    {formatMetric(e2?.f1_macro)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {formatPpDiff(e1?.f1_macro, e2?.f1_macro)}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Inference Latency (Kaggle GPU / Keras)</td>
+                  <td className="py-2.5 px-3 font-mono font-bold text-amber-600 bg-lime-50/30 dark:bg-lime-950/10">
+                    {formatLatencyText(e1)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono font-bold text-amber-600 bg-purple-50/30 dark:bg-purple-950/10">
+                    {formatLatencyText(e2)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {latencyDiffText}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Total Parameter Model</td>
+                  <td className="py-2.5 px-3 font-mono bg-lime-50/30 dark:bg-lime-950/10">
+                    {e1?.parameters != null ? `${Number(e1.parameters).toLocaleString("id-ID")} parameter` : "—"}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono bg-purple-50/30 dark:bg-purple-950/10">
+                    {e2?.parameters != null ? `${Number(e2.parameters).toLocaleString("id-ID")} parameter` : "—"}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {paramDiffText}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Ukuran Bundel TFJS</td>
+                  <td className="py-2.5 px-3 font-mono bg-lime-50/30 dark:bg-lime-950/10">
+                    {e1?.model_size_mb_tensorflowjs != null
+                      ? `${Number(e1.model_size_mb_tensorflowjs).toFixed(2)} MB`
+                      : "—"}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono bg-purple-50/30 dark:bg-purple-950/10">
+                    {e2?.model_size_mb_tensorflowjs != null
+                      ? `${Number(e2.model_size_mb_tensorflowjs).toFixed(2)} MB`
+                      : "—"}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {sizeDiffText}
+                  </td>
+                </tr>
+
+                <tr>
+                  <td className="py-2.5 px-3 font-semibold">Misclassified Samples</td>
+                  <td className="py-2.5 px-3 font-mono font-bold text-rose-600 bg-lime-50/30 dark:bg-lime-950/10">
+                    {formatMisclassifiedText(e1, testPartitionTotal)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono font-bold text-rose-600 bg-purple-50/30 dark:bg-purple-950/10">
+                    {formatMisclassifiedText(e2, testPartitionTotal)}
+                  </td>
+                  <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
+                    {misclassifiedDiffText}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
-        ) : (
-          <p className="text-xs text-muted-fg">
-            Klik <strong>Jalankan Benchmark Browser</strong> untuk mengukur latensi nyata TFJS di browser pada perangkat saat ini.
-          </p>
-        )}
+        </div>
       </div>
 
-      {/* 3. Visual Plots & Confusion Matrix Viewer */}
-      <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-3">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="w-5 h-5 text-accent" />
-            <h4 className="font-heading font-bold text-base">
-              Visualisasi Riset &amp; Kurva Pelatihan Kaggle
-            </h4>
-          </div>
-
-          {/* Toggle Experiment & Plot Type */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-1 bg-muted p-1 rounded border border-border">
-              <span className="text-[10px] font-bold text-muted-fg uppercase px-1">Eksperimen:</span>
-              <button
-                type="button"
-                onClick={() => setSelectedExp("E1_MobileNetV3")}
-                className={`px-2 py-0.5 rounded font-bold text-[11px] ${
-                  selectedExp === "E1_MobileNetV3" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
-                }`}
-              >
-                E1 MobileNetV3
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedExp("E2_MobileNetV3_CBAM")}
-                className={`px-2 py-0.5 rounded font-bold text-[11px] ${
-                  selectedExp === "E2_MobileNetV3_CBAM" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
-                }`}
-              >
-                E2 + CBAM Attention
-              </button>
+        {/* 2b. Fase C: Benchmark Latensi Nyata Peramban (TensorFlow.js Client-Side) */}
+        <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-3">
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <Gauge className="w-5 h-5 text-admin" />
+                <h4 className="font-heading font-bold text-base">
+                  Benchmark Latensi Nyata Peramban (TensorFlow.js Client-Side)
+                </h4>
+                {tfBackendName && <Badge variant="blue">Backend: {tfBackendName.toUpperCase()}</Badge>}
+              </div>
+              <p className="text-xs text-muted-fg mt-0.5">
+                Mengukur waktu inferensi 1 citra (224×224×3) secara langsung di browser perangkat ini
+                menggunakan <code className="font-mono">@tensorflow/tfjs</code> untuk kebutuhan data uji Bab IV skripsi.
+              </p>
             </div>
 
-            <div className="flex items-center gap-1 bg-muted p-1 rounded border border-border">
-              <button
-                type="button"
-                onClick={() => setPlotType("confusion_matrix")}
-                className={`px-2.5 py-0.5 rounded font-bold text-[11px] ${
-                  plotType === "confusion_matrix" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
-                }`}
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <select
+                value={benchIterations}
+                onChange={(e) => setBenchIterations(Number(e.target.value) || 30)}
+                disabled={isBenchmarking}
+                className="px-2.5 py-1.5 rounded border-2 border-fg bg-card text-xs font-bold"
               >
-                Confusion Matrix
-              </button>
-              <button
+                <option value={30}>30 iterasi (+5 warmup)</option>
+                <option value={50}>50 iterasi (+5 warmup)</option>
+                <option value={100}>100 iterasi (+5 warmup)</option>
+              </select>
+
+              <Button
                 type="button"
-                onClick={() => setPlotType("training_history")}
-                className={`px-2.5 py-0.5 rounded font-bold text-[11px] ${
-                  plotType === "training_history" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
-                }`}
+                size="sm"
+                variant="admin"
+                onClick={handleRunBrowserBenchmark}
+                disabled={isBenchmarking}
+                className="text-xs font-bold shadow-pop-soft"
               >
-                Kurva Epoch
-              </button>
+                {isBenchmarking ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menguji Browser...
+                  </>
+                ) : (
+                  <>
+                    <Cpu className="w-3.5 h-3.5 mr-1.5" /> Jalankan Benchmark Browser
+                  </>
+                )}
+              </Button>
             </div>
           </div>
+
+          {benchResults.length > 0 ? (
+            <div className="border-2 border-fg rounded-md overflow-hidden bg-card">
+              <div className="md:hidden px-3 py-1.5 bg-muted/50 border-b border-border text-[10px] font-semibold text-muted-fg flex items-center justify-between">
+                <span>Geser tabel ke samping untuk melihat seluruh kolom</span>
+                <span>↔</span>
+              </div>
+              <div className="overflow-x-auto w-full">
+                <table className="w-full min-w-[600px] text-left text-xs">
+                  <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg">
+                    <tr>
+                      <th className="py-2 px-3 whitespace-nowrap">Model Terdaftar</th>
+                      <th className="py-2 px-3 whitespace-nowrap">Versi</th>
+                      <th className="py-2 px-3 whitespace-nowrap">Load Time</th>
+                      <th className="py-2 px-3 whitespace-nowrap">Rata-Rata (ms/img)</th>
+                      <th className="py-2 px-3 whitespace-nowrap">Median / P95</th>
+                      <th className="py-2 px-3 whitespace-nowrap">Throughput (FPS)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y border-border">
+                    {benchResults.map((b) => (
+                      <tr key={b.id} className="hover:bg-muted/25">
+                        <td className="py-2 px-3 font-semibold whitespace-nowrap">
+                          <div className="flex items-center gap-1.5">
+                            <span>{b.label}</span>
+                            {b.aktif && <Badge variant="green">POS Aktif</Badge>}
+                          </div>
+                          <span className="text-[10px] text-muted-fg block">{b.arsitektur}</span>
+                        </td>
+                        <td className="py-2 px-3 font-mono whitespace-nowrap">{b.versi}</td>
+                        {b.error ? (
+                          <td colSpan={4} className="py-2 px-3 text-rose-600 font-semibold">
+                            Error: {b.error}
+                          </td>
+                        ) : (
+                          <>
+                            <td className="py-2 px-3 font-mono whitespace-nowrap">{Math.round(b.loadMs)} ms</td>
+                            <td className="py-2 px-3 font-heading font-bold text-amber-600 whitespace-nowrap">
+                              {b.meanMs.toFixed(2)} ms
+                            </td>
+                            <td className="py-2 px-3 font-mono text-muted-fg whitespace-nowrap">
+                              {b.medianMs.toFixed(2)} / {b.p95Ms.toFixed(2)} ms
+                            </td>
+                            <td className="py-2 px-3 font-mono font-bold text-emerald-600 whitespace-nowrap">
+                              {b.fps.toFixed(1)} FPS
+                            </td>
+                          </>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <p className="text-xs text-muted-fg">
+              Klik <strong>Jalankan Benchmark Browser</strong> untuk mengukur latensi nyata TFJS di browser pada perangkat saat ini.
+            </p>
+          )}
         </div>
 
-        {/* Plot Image Container */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-          <div className="lg:col-span-8 p-3 rounded-md border-2 border-fg bg-slate-950 flex items-center justify-center min-h-[360px]">
-            {cloudPlotUrl && !plotError ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={cloudPlotUrl}
-                alt={`${selectedExp} ${plotType}`}
-                className="max-h-[500px] w-auto object-contain rounded"
-                onError={() =>
-                  setPlotError("Gagal memuat plot riset dari Supabase Storage.")
-                }
-              />
-            ) : plotLoading ? (
-              <div className="text-slate-300 text-xs flex flex-col items-center gap-2">
-                <RefreshCw className="w-5 h-5 animate-spin text-accent" />
-                <span>Memuat plot riset...</span>
+        {/* 3. Visual Plots & Confusion Matrix Viewer */}
+        <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-admin" />
+              <h4 className="font-heading font-bold text-base">
+                Visualisasi Riset &amp; Kurva Pelatihan Kaggle
+              </h4>
+            </div>
+
+            {/* Toggle Experiment & Plot Type */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1 bg-muted p-1 rounded border border-border">
+                <span className="text-[10px] font-bold text-muted-fg uppercase px-1">Eksperimen:</span>
+                <button
+                  type="button"
+                  onClick={() => setSelectedExp("E1_MobileNetV3")}
+                  className={`px-2 py-0.5 rounded font-bold text-[11px] ${selectedExp === "E1_MobileNetV3" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
+                    }`}
+                >
+                  E1 MobileNetV3
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedExp("E2_MobileNetV3_CBAM")}
+                  className={`px-2 py-0.5 rounded font-bold text-[11px] ${selectedExp === "E2_MobileNetV3_CBAM" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
+                    }`}
+                >
+                  E2 + CBAM Attention
+                </button>
               </div>
-            ) : plotBlobUrl ? (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={plotBlobUrl}
-                alt={`${selectedExp} ${plotType}`}
-                className="max-h-[500px] w-auto object-contain rounded"
-              />
-            ) : (
-              <div className="text-slate-400 text-xs text-center max-w-sm space-y-2 p-4">
-                <AlertTriangle className="w-6 h-6 mx-auto text-amber-400" />
-                <p>{plotError || "Visualisasi plot riset belum tersedia."}</p>
+
+              <div className="flex items-center gap-1 bg-muted p-1 rounded border border-border">
+                <button
+                  type="button"
+                  onClick={() => setPlotType("confusion_matrix")}
+                  className={`px-2.5 py-0.5 rounded font-bold text-[11px] ${plotType === "confusion_matrix" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
+                    }`}
+                >
+                  Confusion Matrix
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPlotType("training_history")}
+                  className={`px-2.5 py-0.5 rounded font-bold text-[11px] ${plotType === "training_history" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
+                    }`}
+                >
+                  Kurva Epoch
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
-          {/* Right: Error summary / Confusion analysis */}
-          <div className="lg:col-span-4 space-y-3">
-            <div className="p-3.5 rounded-md border-2 border-fg bg-card space-y-2.5">
-              <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400 text-xs">
-                <AlertTriangle className="w-4 h-4" />
-                <span>Analisis Pasangan Tertukar (Error Summary)</span>
-              </div>
-              <p className="text-[11px] text-muted-fg leading-relaxed">
-                Sampel test citra kemasan yang mengalami salah klasifikasi pada {selectedExp}:
-              </p>
-
-              {expDetail.error_summary && expDetail.error_summary.length > 0 ? (
-                <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                  {expDetail.error_summary.map((err: any, idx: number) => {
-                    const trueName = err.true_label || err.true_class || "—";
-                    const predName = err.most_confused_with || err.predicted_class || "—";
-                    const errCount = err.total_errors ?? err.count ?? 0;
-                    const avgConf = err.avg_confidence;
-                    return (
-                      <div
-                        key={idx}
-                        className="p-2 rounded border border-border bg-muted/30 text-xs space-y-0.5"
-                      >
-                        <div className="flex justify-between items-center gap-2 font-bold">
-                          <span className="text-fg font-mono text-[11px] truncate" title={trueName}>
-                            {trueName}
-                          </span>
-                          <span className="text-rose-600 font-mono shrink-0">{errCount}x tertukar</span>
-                        </div>
-                        <p className="text-[10px] text-muted-fg">
-                          Diprediksi salah sebagai:{" "}
-                          <strong className="text-rose-500 font-mono">{predName}</strong>
-                          {avgConf != null && (
-                            <span className="ml-1 font-mono text-muted-fg">
-                              ({(Number(avgConf) * 100).toFixed(1)}% conf)
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                    );
-                  })}
+          {/* Plot Image Container */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <div className="lg:col-span-8 p-3 rounded-md border-2 border-fg bg-slate-950 flex items-center justify-center min-h-[360px]">
+              {cloudPlotUrl && !plotError ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={cloudPlotUrl}
+                  alt={`${selectedExp} ${plotType}`}
+                  className="max-h-[500px] w-auto object-contain rounded"
+                  onError={() =>
+                    setPlotError("Gagal memuat plot riset dari Supabase Storage.")
+                  }
+                />
+              ) : plotLoading ? (
+                <div className="text-slate-300 text-xs flex flex-col items-center gap-2">
+                  <RefreshCw className="w-5 h-5 animate-spin text-admin" />
+                  <span>Memuat plot riset...</span>
                 </div>
+              ) : plotBlobUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={plotBlobUrl}
+                  alt={`${selectedExp} ${plotType}`}
+                  className="max-h-[500px] w-auto object-contain rounded"
+                />
               ) : (
-                <div className="p-4 text-center text-xs text-muted-fg bg-muted rounded">
-                  Tidak ada kesalahan klasifikasi yang terdeteksi.
+                <div className="text-slate-400 text-xs text-center max-w-sm space-y-2 p-4">
+                  <AlertTriangle className="w-6 h-6 mx-auto text-amber-400" />
+                  <p>{plotError || "Visualisasi plot riset belum tersedia."}</p>
                 </div>
               )}
             </div>
 
-            <div className="p-3 rounded-md border-2 border-fg bg-muted/20 text-xs text-muted-fg space-y-1">
-              <span className="font-bold text-fg block">Kesimpulan Riset:</span>
-              <p className="text-[11px] leading-relaxed">{dynamicConclusion}</p>
+            {/* Right: Error summary / Confusion analysis */}
+            <div className="lg:col-span-4 space-y-3">
+              <div className="p-3.5 rounded-md border-2 border-fg bg-card space-y-2.5">
+                <div className="flex items-center gap-1.5 font-bold text-amber-700 dark:text-amber-400 text-xs">
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Analisis Pasangan Tertukar (Error Summary)</span>
+                </div>
+                <p className="text-[11px] text-muted-fg leading-relaxed">
+                  Sampel test citra kemasan yang mengalami salah klasifikasi pada {selectedExp}:
+                </p>
+
+                {expDetail.error_summary && expDetail.error_summary.length > 0 ? (
+                  <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
+                    {expDetail.error_summary.map((err: any, idx: number) => {
+                      const trueName = err.true_label || err.true_class || "—";
+                      const predName = err.most_confused_with || err.predicted_class || "—";
+                      const errCount = err.total_errors ?? err.count ?? 0;
+                      const avgConf = err.avg_confidence;
+                      return (
+                        <div
+                          key={idx}
+                          className="p-2 rounded border border-border bg-muted/30 text-xs space-y-0.5"
+                        >
+                          <div className="flex justify-between items-center gap-2 font-bold">
+                            <span className="text-fg font-mono text-[11px] truncate" title={trueName}>
+                              {trueName}
+                            </span>
+                            <span className="text-rose-600 font-mono shrink-0">{errCount}x tertukar</span>
+                          </div>
+                          <p className="text-[10px] text-muted-fg">
+                            Diprediksi salah sebagai:{" "}
+                            <strong className="text-rose-500 font-mono">{predName}</strong>
+                            {avgConf != null && (
+                              <span className="ml-1 font-mono text-muted-fg">
+                                ({(Number(avgConf) * 100).toFixed(1)}% conf)
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="p-4 text-center text-xs text-muted-fg bg-muted rounded">
+                    Tidak ada kesalahan klasifikasi yang terdeteksi.
+                  </div>
+                )}
+              </div>
+
+              <div className="p-3 rounded-md border-2 border-fg bg-muted/20 text-xs text-muted-fg space-y-1">
+                <span className="font-bold text-fg block">Kesimpulan Riset:</span>
+                <p className="text-[11px] leading-relaxed">{dynamicConclusion}</p>
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* 4. Per-Class Classification Report Table */}
-      <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
-        <div className="flex items-center justify-between border-b-2 border-border pb-3">
-          <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-accent" />
-            <h4 className="font-heading font-bold text-base">
-              Laporan Evaluasi Per-Kelas Produk ({totalClasses} Kelas — {selectedExp})
-            </h4>
+        {/* 4. Per-Class Classification Report Table */}
+        <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border pb-3">
+            <div className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-admin shrink-0" />
+              <h4 className="font-heading font-bold text-base">
+                Laporan Evaluasi Per-Kelas Produk ({totalClasses} Kelas — {selectedExp})
+              </h4>
+            </div>
+            <span className="text-xs font-mono text-muted-fg">
+              Test Partition: {testPartitionTotal} Citra
+            </span>
           </div>
-          <span className="text-xs font-mono text-muted-fg">
-            Test Partition: {testPartitionTotal} Citra
-          </span>
-        </div>
 
-        <div className="border-2 border-fg rounded-md overflow-hidden bg-card max-h-[400px] overflow-y-auto">
-          <table className="w-full text-left text-xs font-body">
-            <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg sticky top-0 z-10">
-              <tr>
-                <th className="py-2.5 px-3">Label Kelas Produk</th>
-                <th className="py-2.5 px-3">Precision</th>
-                <th className="py-2.5 px-3">Recall</th>
-                <th className="py-2.5 px-3">F1-Score</th>
-                <th className="py-2.5 px-3 text-center">Support (Test)</th>
-                <th className="py-2.5 px-3">Status Performa</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y border-border">
-              {perClassReport.length > 0 ? (
-                perClassReport.map((cls: any, idx: number) => {
-                  const f1 = cls.f1_score ?? cls["f1-score"] ?? 0;
-                  const isPerfect = Number(f1) >= 0.999;
-                  return (
-                    <tr key={idx} className="hover:bg-muted/30">
-                      <td className="py-2 px-3 font-semibold font-mono text-xs">
-                        {cls.class_name || cls.Class || `Class ${idx}`}
-                      </td>
-                      <td className="py-2 px-3 font-mono">{formatMetric(cls.precision)}</td>
-                      <td className="py-2 px-3 font-mono">{formatMetric(cls.recall)}</td>
-                      <td className="py-2 px-3 font-heading font-bold text-emerald-600">
-                        {formatMetric(f1)}
-                      </td>
-                      <td className="py-2 px-3 text-center font-mono">{cls.support ?? "—"}</td>
-                      <td className="py-2 px-3">
-                        {isPerfect ? (
-                          <Badge variant="green">100% Sempurna</Badge>
-                        ) : Number(f1) >= 0.9 ? (
-                          <Badge variant="yellow">&gt; 90% Akurat</Badge>
-                        ) : (
-                          <Badge variant="red">Perlu Kurasi</Badge>
-                        )}
+          <div className="border-2 border-fg rounded-md overflow-hidden bg-card">
+            <div className="md:hidden px-3 py-1.5 bg-muted/50 border-b border-border text-[10px] font-semibold text-muted-fg flex items-center justify-between">
+              <span>Geser tabel ke samping untuk melihat seluruh kolom</span>
+              <span>↔</span>
+            </div>
+            <div className="max-h-[400px] overflow-auto w-full">
+              <table className="w-full min-w-[620px] text-left text-xs font-body">
+                <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg sticky top-0 z-10">
+                  <tr>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Label Kelas Produk</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Precision</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Recall</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">F1-Score</th>
+                    <th className="py-2.5 px-3 text-center whitespace-nowrap">Support (Test)</th>
+                    <th className="py-2.5 px-3 whitespace-nowrap">Status Performa</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y border-border">
+                  {perClassReport.length > 0 ? (
+                    perClassReport.map((cls: any, idx: number) => {
+                      const f1 = cls.f1_score ?? cls["f1-score"] ?? 0;
+                      const isPerfect = Number(f1) >= 0.999;
+                      return (
+                        <tr key={idx} className="hover:bg-muted/30">
+                          <td className="py-2 px-3 font-semibold font-mono text-xs whitespace-nowrap">
+                            {cls.class_name || cls.Class || `Class ${idx}`}
+                          </td>
+                          <td className="py-2 px-3 font-mono whitespace-nowrap">{formatMetric(cls.precision)}</td>
+                          <td className="py-2 px-3 font-mono whitespace-nowrap">{formatMetric(cls.recall)}</td>
+                          <td className="py-2 px-3 font-heading font-bold text-emerald-600 whitespace-nowrap">
+                            {formatMetric(f1)}
+                          </td>
+                          <td className="py-2 px-3 text-center font-mono whitespace-nowrap">{cls.support ?? "—"}</td>
+                          <td className="py-2 px-3 whitespace-nowrap">
+                            {isPerfect ? (
+                              <Badge variant="green">100% Sempurna</Badge>
+                            ) : Number(f1) >= 0.9 ? (
+                              <Badge variant="yellow">&gt; 90% Akurat</Badge>
+                            ) : (
+                              <Badge variant="red">Perlu Kurasi</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-6 text-center text-muted-fg">
+                        Data classification report belum tersedia untuk sesi training ini.
                       </td>
                     </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={6} className="py-6 text-center text-muted-fg">
-                    Data classification report belum tersedia untuk sesi training ini.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
-  );
+      );
 }

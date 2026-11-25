@@ -78,7 +78,7 @@ export function KaggleTrainingPipelineSection({
           </div>
           <div className="p-3 rounded border-2 border-fg bg-muted/20 space-y-1">
             <span className="text-[10px] font-bold uppercase text-muted-fg block">Akselerator Hardware</span>
-            <span className="font-bold text-accent flex items-center gap-1 text-xs"><Cpu className="w-3.5 h-3.5" /> GPU NVIDIA T4 x 2</span>
+            <span className="font-bold text-admin flex items-center gap-1 text-xs"><Cpu className="w-3.5 h-3.5" /> GPU NVIDIA T4 x 2</span>
           </div>
           <div className="p-3 rounded border-2 border-fg bg-muted/20 space-y-1">
             <span className="text-[10px] font-bold uppercase text-muted-fg block">Sumber Dataset</span>
@@ -104,7 +104,7 @@ export function KaggleTrainingPipelineSection({
 
             {(trainStatus === "running" || trainStatus === "processing") && (
               <div className="flex items-center gap-3">
-                <span className="font-mono text-xs font-bold text-accent flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Elapsed: {formatElapsed(elapsed)}</span>
+                <span className="font-mono text-xs font-bold text-admin flex items-center gap-1"><Clock className="w-3.5 h-3.5" /> Elapsed: {formatElapsed(elapsed)}</span>
                 <Button size="sm" variant="outline" onClick={onCheckStatus} className="text-[11px] py-0.5 px-2 font-bold">
                   <RefreshCw className="w-3 h-3 mr-1" /> Cek Status
                 </Button>
@@ -128,11 +128,11 @@ export function KaggleTrainingPipelineSection({
 
                 <div className="p-3.5 rounded-lg border-2 border-fg bg-card flex flex-col justify-between space-y-2">
                   <div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-accent block">Mode 2 — Pelatihan Penuh (30–40 Mnt)</span>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-admin block">Mode 2 — Pelatihan Penuh (30–40 Mnt)</span>
                     <h5 className="font-heading font-bold text-xs mt-0.5">Trigger Training Ulang di Kaggle GPU</h5>
                     <p className="text-[11px] text-muted-fg mt-1">Kirim perintah re-train ke kernel Kaggle GPU T4x2 untuk melatih ulang arsitektur model dengan penambahan kelas produk baru atau kurasi citra terbaru.</p>
                   </div>
-                  <Button type="button" onClick={onTriggerTrain} className="w-full font-bold text-xs py-2 shadow-pop-soft">
+                  <Button type="button" variant="admin" onClick={onTriggerTrain} className="w-full font-bold text-xs py-2 shadow-pop-soft">
                     <Play className="w-3.5 h-3.5 mr-1.5" /> 🚀 Trigger Training Ulang di Kaggle
                   </Button>
                 </div>
@@ -140,7 +140,7 @@ export function KaggleTrainingPipelineSection({
             </div>
           ) : trainStatus === "running" || trainStatus === "processing" ? (
             <div className="space-y-2 pt-2">
-              <div className="w-full h-3 bg-muted rounded-full overflow-hidden border-2 border-fg relative"><div className="h-full bg-accent animate-pulse w-3/4" /></div>
+              <div className="w-full h-3 bg-muted rounded-full overflow-hidden border-2 border-fg relative"><div className="h-full bg-admin animate-pulse w-3/4" /></div>
               <div className="flex justify-between text-[11px] text-muted-fg">
                 <span>Kernel sedang memproses epoch training & validasi...</span>
                 <span className="font-mono font-bold">Auto-check setiap 15 detik</span>
@@ -164,7 +164,7 @@ export function KaggleTrainingPipelineSection({
                 <Button type="button" size="sm" variant="outline" onClick={onFetchLatestOutput} disabled={isFetchingOutput} className="text-xs font-bold">
                   <Download className="w-3.5 h-3.5 mr-1" /> Tarik Ulang Output
                 </Button>
-                <Button type="button" size="sm" onClick={onTriggerTrain} className="text-xs font-bold">
+                <Button type="button" size="sm" variant="admin" onClick={onTriggerTrain} className="text-xs font-bold">
                   <Play className="w-3.5 h-3.5 mr-1" /> Trigger Training Baru
                 </Button>
               </div>
@@ -179,62 +179,68 @@ export function KaggleTrainingPipelineSection({
       </div>
 
       <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
-        <div className="flex items-center justify-between border-b-2 border-border pb-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-border pb-3">
           <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-accent" />
+            <Layers className="w-5 h-5 text-admin shrink-0" />
             <h4 className="font-heading font-bold text-base">Riwayat Eksperimen Arsitektur & Pelatihan Model</h4>
           </div>
           <span className="text-xs font-mono text-muted-fg">Total {comparison.length} Arsitektur Diuji</span>
         </div>
 
-        <div className="border-2 border-fg rounded-md overflow-hidden">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg">
-              <tr>
-                <th className="py-2.5 px-3">Eksperimen / Arsitektur</th>
-                <th className="py-2.5 px-3">Top-1 Accuracy</th>
-                <th className="py-2.5 px-3">F1-Macro</th>
-                <th className="py-2.5 px-3">Latensi GPU (ms)</th>
-                <th className="py-2.5 px-3">Parameters</th>
-                <th className="py-2.5 px-3">Best Epoch</th>
-                <th className="py-2.5 px-3">TFJS Size</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y border-border">
-              {comparison.length > 0 ? (
-                comparison.map((exp: any, idx: number) => {
-                  const expName = exp.experiment || exp.Eksperimen || `Exp #${idx + 1}`;
-                  const isBest = researchSummary?.best_experiment ? expName === researchSummary.best_experiment : idx === 0;
-                  const acc = exp.accuracy ?? exp["Accuracy (Top-1)"] ?? exp.akurasi;
-                  const f1 = exp.f1_macro ?? exp["F1-Score (Macro)"];
-                  const infMs = exp.inference_time_per_image_ms ?? exp["Inference (ms)"];
-                  const params = exp.parameters ?? exp.Params;
-                  const bestEpoch = exp.best_epoch ?? exp["Best Epoch"];
-                  const tfjsSize = exp.model_size_mb_tensorflowjs ?? exp["Size (MB)"];
+        <div className="border-2 border-fg rounded-md overflow-hidden bg-card">
+          <div className="md:hidden px-3 py-1.5 bg-muted/50 border-b border-border text-[10px] font-semibold text-muted-fg flex items-center justify-between">
+            <span>Geser tabel ke samping untuk melihat seluruh kolom</span>
+            <span>↔</span>
+          </div>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[680px] text-left text-xs">
+              <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg">
+                <tr>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Eksperimen / Arsitektur</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Top-1 Accuracy</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">F1-Macro</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Latensi GPU (ms)</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Parameters</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Best Epoch</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">TFJS Size</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y border-border">
+                {comparison.length > 0 ? (
+                  comparison.map((exp: any, idx: number) => {
+                    const expName = exp.experiment || exp.Eksperimen || `Exp #${idx + 1}`;
+                    const isBest = researchSummary?.best_experiment ? expName === researchSummary.best_experiment : idx === 0;
+                    const acc = exp.accuracy ?? exp["Accuracy (Top-1)"] ?? exp.akurasi;
+                    const f1 = exp.f1_macro ?? exp["F1-Score (Macro)"];
+                    const infMs = exp.inference_time_per_image_ms ?? exp["Inference (ms)"];
+                    const params = exp.parameters ?? exp.Params;
+                    const bestEpoch = exp.best_epoch ?? exp["Best Epoch"];
+                    const tfjsSize = exp.model_size_mb_tensorflowjs ?? exp["Size (MB)"];
 
-                  return (
-                    <tr key={idx} className="hover:bg-muted/30">
-                      <td className="py-2.5 px-3 font-semibold">
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-fg">{expName}</span>
-                          {isBest && <Badge variant="green">Terbaik</Badge>}
-                        </div>
-                        <span className="text-[10px] text-muted-fg font-mono block">{exp.architecture || exp.Arsitektur || "MobileNetV3-Large"}</span>
-                      </td>
-                      <td className="py-2.5 px-3 font-heading font-bold text-emerald-600 dark:text-emerald-400">{formatMetric(acc)}</td>
-                      <td className="py-2.5 px-3 font-heading font-bold text-teal-600 dark:text-teal-400">{formatMetric(f1)}</td>
-                      <td className="py-2.5 px-3 font-mono font-bold text-amber-600 dark:text-amber-400">{infMs != null ? `${Number(infMs).toFixed(2)} ms` : "—"}</td>
-                      <td className="py-2.5 px-3 font-mono text-muted-fg">{params != null ? Number(params).toLocaleString("id-ID") : "—"}</td>
-                      <td className="py-2.5 px-3 font-mono">{bestEpoch ?? "—"}</td>
-                      <td className="py-2.5 px-3 font-mono">{tfjsSize != null ? `${Number(tfjsSize).toFixed(2)} MB` : "—"}</td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr><td colSpan={7} className="py-4 text-center text-muted-fg">Belum ada data perbandingan eksperimen model.</td></tr>
-              )}
-            </tbody>
-          </table>
+                    return (
+                      <tr key={idx} className="hover:bg-muted/30">
+                        <td className="py-2.5 px-3 font-semibold whitespace-nowrap">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-fg">{expName}</span>
+                            {isBest && <Badge variant="green">Terbaik</Badge>}
+                          </div>
+                          <span className="text-[10px] text-muted-fg font-mono block">{exp.architecture || exp.Arsitektur || "MobileNetV3-Large"}</span>
+                        </td>
+                        <td className="py-2.5 px-3 font-heading font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">{formatMetric(acc)}</td>
+                        <td className="py-2.5 px-3 font-heading font-bold text-teal-600 dark:text-teal-400 whitespace-nowrap">{formatMetric(f1)}</td>
+                        <td className="py-2.5 px-3 font-mono font-bold text-amber-600 dark:text-amber-400 whitespace-nowrap">{infMs != null ? `${Number(infMs).toFixed(2)} ms` : "—"}</td>
+                        <td className="py-2.5 px-3 font-mono text-muted-fg whitespace-nowrap">{params != null ? Number(params).toLocaleString("id-ID") : "—"}</td>
+                        <td className="py-2.5 px-3 font-mono whitespace-nowrap">{bestEpoch ?? "—"}</td>
+                        <td className="py-2.5 px-3 font-mono whitespace-nowrap">{tfjsSize != null ? `${Number(tfjsSize).toFixed(2)} MB` : "—"}</td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr><td colSpan={7} className="py-4 text-center text-muted-fg">Belum ada data perbandingan eksperimen model.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </>

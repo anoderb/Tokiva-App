@@ -287,7 +287,7 @@ function AdminTokoDetailContent() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
               <SectionCard title="Transaksi Terbaru" desc="20 transaksi kasir terakhir pada toko ini.">
                 <div className="overflow-x-auto border-2 border-fg rounded-md mt-2">
-                  <table className="w-full text-xs">
+                  <table className="w-full min-w-[460px] text-xs">
                     <thead>
                       <tr className="bg-muted border-b-2 border-fg text-left font-heading text-[10px] uppercase text-muted-fg">
                         <th className="p-2.5">No. Struk</th>
@@ -393,7 +393,7 @@ function AdminTokoDetailContent() {
               </div>
 
               <div className="overflow-x-auto border-2 border-fg rounded-md">
-                <table className="w-full text-[13px]">
+                <table className="w-full min-w-[560px] text-[13px]">
                   <thead>
                     <tr className="bg-muted border-b-2 border-fg text-left font-heading text-[10px] uppercase text-muted-fg">
                       <th className="p-2.5">Nama</th>
@@ -437,7 +437,7 @@ function AdminTokoDetailContent() {
             <div className="space-y-5">
               <SectionCard title="Riwayat Transaksi Terbaru" desc="20 transaksi kasir terbaru pada toko ini.">
                 <div className="overflow-x-auto border-2 border-fg rounded-md mt-2">
-                  <table className="w-full text-xs">
+                  <table className="w-full min-w-[460px] text-xs">
                     <thead>
                       <tr className="bg-muted border-b-2 border-fg text-left font-heading text-[10px] uppercase text-muted-fg">
                         <th className="p-2.5">No. Struk</th>
@@ -482,7 +482,7 @@ function AdminTokoDetailContent() {
 
               <SectionCard title="Riwayat Shift Kasir" desc="Catatan buka/tutup shift terbaru di toko ini.">
                 <div className="overflow-x-auto border-2 border-fg rounded-md mt-2">
-                  <table className="w-full text-xs">
+                  <table className="w-full min-w-[460px] text-xs">
                     <thead>
                       <tr className="bg-muted border-b-2 border-fg text-left font-heading text-[10px] uppercase text-muted-fg">
                         <th className="p-2.5">Waktu Buka</th>

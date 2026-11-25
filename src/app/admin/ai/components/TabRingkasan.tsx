@@ -70,7 +70,7 @@ export function TabRingkasan({
         <div className="p-4 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-xs font-bold text-muted-fg uppercase tracking-wider">Total Dataset Citra</span>
-            <div className="w-8 h-8 rounded-md bg-accent/20 border-2 border-fg flex items-center justify-center text-accent">
+            <div className="w-8 h-8 rounded-md bg-admin/20 border-2 border-fg flex items-center justify-center text-admin">
               <Database className="w-4 h-4" />
             </div>
           </div>
@@ -104,7 +104,7 @@ export function TabRingkasan({
           </div>
           <div className="pt-2 border-t border-border flex items-center justify-between text-[11px]">
             <span className="text-muted-fg">Siap Training:</span>
-            <span className="font-bold text-accent">
+            <span className="font-bold text-admin">
               {readyClassCount} / {kelasList.length} Kelas
             </span>
           </div>
@@ -161,7 +161,7 @@ export function TabRingkasan({
         <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
           <div className="flex items-center justify-between border-b-2 border-border pb-3">
             <div className="flex items-center gap-2">
-              <Database className="w-5 h-5 text-accent" />
+              <Database className="w-5 h-5 text-admin" />
               <h4 className="font-heading font-bold text-base">Status Komposisi Dataset</h4>
             </div>
             <Button
@@ -226,7 +226,7 @@ export function TabRingkasan({
 
           <div className="p-3 rounded-md border-2 border-fg bg-muted/30 text-xs text-muted-fg space-y-1">
             <span className="font-bold text-fg block">Hugging Face Repository Dataset:</span>
-            <span className="font-mono text-[11px] block text-accent font-bold">
+            <span className="font-mono text-[11px] block text-admin font-bold">
               {hfStats?.repo_hf || "Belum dikonfigurasi (.env)"} (Private Storage)
             </span>
             <span className="text-[11px] block">
@@ -239,7 +239,7 @@ export function TabRingkasan({
         <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-4">
           <div className="flex items-center justify-between border-b-2 border-border pb-3">
             <div className="flex items-center gap-2">
-              <Cpu className="w-5 h-5 text-accent" />
+              <Cpu className="w-5 h-5 text-admin" />
               <h4 className="font-heading font-bold text-base">Model Produksi Aktif</h4>
             </div>
             <Button
@@ -296,7 +296,7 @@ export function TabRingkasan({
           ) : (
             <div className="p-6 text-center text-muted-fg space-y-2">
               <p className="text-xs">Belum ada model aktif di production.</p>
-              <Button size="sm" onClick={() => onNavigateTab("deploy")}>
+              <Button size="sm" variant="admin" onClick={() => onNavigateTab("deploy")}>
                 Pilih Model untuk Diaktifkan
               </Button>
             </div>
@@ -307,7 +307,7 @@ export function TabRingkasan({
       {/* 7-Step Pipeline Workflow Stepper */}
       <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-3">
         <div className="flex items-center gap-2 border-b-2 border-border pb-2">
-          <Sparkles className="w-5 h-5 text-accent" />
+          <Sparkles className="w-5 h-5 text-admin" />
           <h4 className="font-heading font-bold text-base">Alur Kerja MLOps Tokiva AI (7-Step Lifecycle)</h4>
         </div>
 
@@ -320,10 +320,10 @@ export function TabRingkasan({
               className="p-2.5 rounded-md border-2 border-fg bg-card hover:bg-muted text-left transition-all hover:scale-[1.02] flex flex-col justify-between group"
             >
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-accent block">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-admin block">
                   Tahap {idx + 1}
                 </span>
-                <h5 className="font-bold text-xs mt-0.5 group-hover:text-accent transition-colors">
+                <h5 className="font-bold text-xs mt-0.5 group-hover:text-admin transition-colors">
                   {st.label.replace(/^\d+\.\s*/, "")}
                 </h5>
                 <p className="text-[10px] text-muted-fg mt-1 leading-tight">{st.desc}</p>

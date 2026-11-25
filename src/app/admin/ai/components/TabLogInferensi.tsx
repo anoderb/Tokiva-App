@@ -176,7 +176,7 @@ export function TabLogInferensi({
           <span className="text-[10px] uppercase font-bold text-muted-fg tracking-wider">
             Akurasi Lapangan (Field Accuracy)
           </span>
-          <h4 className="font-heading font-black text-2xl text-accent">
+          <h4 className="font-heading font-black text-2xl text-admin">
             {akurasi.akurasi_lapangan_persen != null
               ? `${Number(akurasi.akurasi_lapangan_persen).toFixed(1)}%`
               : "100.0%"}
@@ -190,7 +190,7 @@ export function TabLogInferensi({
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b-2 border-border pb-3">
           <div>
             <div className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-accent" />
+              <Activity className="w-5 h-5 text-admin" />
               <h4 className="font-heading font-bold text-base">
                 Audit Log Inferensi Kasir Real-Time
               </h4>
@@ -200,7 +200,7 @@ export function TabLogInferensi({
             </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1 bg-muted p-1 rounded border border-border text-xs">
               <button
                 type="button"
@@ -209,7 +209,7 @@ export function TabLogInferensi({
                   setPage(1);
                 }}
                 className={`px-2.5 py-0.5 rounded font-bold text-[11px] ${
-                  statusFilter === "semua" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
+                  statusFilter === "semua" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
                 }`}
               >
                 Semua
@@ -257,116 +257,122 @@ export function TabLogInferensi({
 
         {/* Table */}
         <div className="border-2 border-fg rounded-md overflow-hidden bg-card">
-          <table className="w-full text-left text-xs font-body">
-            <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg">
-              <tr>
-                <th className="py-2.5 px-3">Waktu</th>
-                <th className="py-2.5 px-3">Cuplikan</th>
-                <th className="py-2.5 px-3">Tebakan AI &amp; Keyakinan</th>
-                <th className="py-2.5 px-3">Pilihan Akhir Kasir</th>
-                <th className="py-2.5 px-3">Model</th>
-                <th className="py-2.5 px-3">Status</th>
-                <th className="py-2.5 px-3 text-right">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y border-border">
-              {loadingLogs && rows.length === 0 ? (
+          <div className="md:hidden px-3 py-1.5 bg-muted/50 border-b border-border text-[10px] font-semibold text-muted-fg flex items-center justify-between">
+            <span>Geser tabel ke samping untuk melihat seluruh kolom</span>
+            <span>↔</span>
+          </div>
+          <div className="overflow-x-auto w-full">
+            <table className="w-full min-w-[760px] text-left text-xs font-body">
+              <thead className="bg-muted border-b-2 border-border font-bold uppercase text-[10px] text-muted-fg">
                 <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-fg">
-                    Memuat riwayat log inferensi...
-                  </td>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Waktu</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Cuplikan</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Tebakan AI &amp; Keyakinan</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Pilihan Akhir Kasir</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Model</th>
+                  <th className="py-2.5 px-3 whitespace-nowrap">Status</th>
+                  <th className="py-2.5 px-3 text-right whitespace-nowrap">Aksi</th>
                 </tr>
-              ) : rows.length > 0 ? (
-                rows.map((log) => {
-                  const isCorrect = !log.butuh_koreksi;
-                  const pct = Math.round((log.skor_yakin || 0.85) * 100);
-                  const alreadyPromoted = Boolean(log.sudah_jadi_sampel);
+              </thead>
+              <tbody className="divide-y border-border">
+                {loadingLogs && rows.length === 0 ? (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-muted-fg">
+                      Memuat riwayat log inferensi...
+                    </td>
+                  </tr>
+                ) : rows.length > 0 ? (
+                  rows.map((log) => {
+                    const isCorrect = !log.butuh_koreksi;
+                    const pct = Math.round((log.skor_yakin || 0.85) * 100);
+                    const alreadyPromoted = Boolean(log.sudah_jadi_sampel);
 
-                  return (
-                    <tr key={log.id} className="hover:bg-muted/30">
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg">
-                        {log.dibuat_pada ? formatDateTime(log.dibuat_pada) : "Baru saja"}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <ProductImage
-                          src={log.foto_cuplikan}
-                          alt="Inference Cuplikan"
-                          size="sm"
-                          className="rounded border"
-                        />
-                      </td>
-                      <td className="py-2.5 px-3">
-                        <span className="font-bold text-fg block">
-                          {log.kelas_prediksi?.nama || log.prediksi_kelas_id || "Produk Terdeteksi"}
-                        </span>
-                        <span className="font-mono text-[10px] text-muted-fg">
-                          Keyakinan: {pct}%
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3">
-                        {log.produk_asli?.nama ? (
-                          <span className="font-semibold text-fg">{log.produk_asli.nama}</span>
-                        ) : isCorrect ? (
-                          <span className="text-muted-fg italic">Sesuai Prediksi</span>
-                        ) : (
-                          <span className="text-amber-600 font-semibold">Dikoreksi manual</span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3 font-mono text-[10px] text-muted-fg">
-                        {log.versi_model || "—"}
-                      </td>
-                      <td className="py-2.5 px-3">
-                        {isCorrect ? (
-                          <span className="text-emerald-600 font-bold flex items-center gap-1 text-[11px]">
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Diterima
+                    return (
+                      <tr key={log.id} className="hover:bg-muted/30">
+                        <td className="py-2.5 px-3 font-mono text-[11px] text-muted-fg whitespace-nowrap">
+                          {log.dibuat_pada ? formatDateTime(log.dibuat_pada) : "Baru saja"}
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <ProductImage
+                            src={log.foto_cuplikan}
+                            alt="Inference Cuplikan"
+                            size="sm"
+                            className="rounded border"
+                          />
+                        </td>
+                        <td className="py-2.5 px-3">
+                          <span className="font-bold text-fg block">
+                            {log.kelas_prediksi?.nama || log.prediksi_kelas_id || "Produk Terdeteksi"}
                           </span>
-                        ) : (
-                          <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
-                            <AlertTriangle className="w-3.5 h-3.5" /> Dikoreksi
+                          <span className="font-mono text-[10px] text-muted-fg">
+                            Keyakinan: {pct}%
                           </span>
-                        )}
-                      </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="flex items-center justify-end gap-1.5">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedLog(log)}
-                            className="p-1 rounded border border-border hover:bg-muted text-muted-fg"
-                            title="Detail Log"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
+                        </td>
+                        <td className="py-2.5 px-3">
+                          {log.produk_asli?.nama ? (
+                            <span className="font-semibold text-fg">{log.produk_asli.nama}</span>
+                          ) : isCorrect ? (
+                            <span className="text-muted-fg italic">Sesuai Prediksi</span>
+                          ) : (
+                            <span className="text-amber-600 font-semibold">Dikoreksi manual</span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 font-mono text-[10px] text-muted-fg whitespace-nowrap">
+                          {log.versi_model || "—"}
+                        </td>
+                        <td className="py-2.5 px-3 whitespace-nowrap">
+                          {isCorrect ? (
+                            <span className="text-emerald-600 font-bold flex items-center gap-1 text-[11px]">
+                              <CheckCircle2 className="w-3.5 h-3.5" /> Diterima
+                            </span>
+                          ) : (
+                            <span className="text-amber-600 font-bold flex items-center gap-1 text-[11px]">
+                              <AlertTriangle className="w-3.5 h-3.5" /> Dikoreksi
+                            </span>
+                          )}
+                        </td>
+                        <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedLog(log)}
+                              className="p-1 rounded border border-border hover:bg-muted text-muted-fg"
+                              title="Detail Log"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                            </button>
 
-                          {log.foto_cuplikan &&
-                            (alreadyPromoted ? (
-                              <Badge variant="green" className="text-[10px]">
-                                <Check className="w-3 h-3 inline mr-0.5" /> Masuk Dataset
-                              </Badge>
-                            ) : (
-                              <button
-                                type="button"
-                                onClick={() => openPromoteModal(log)}
-                                disabled={submittingLogId === log.id}
-                                className="px-2 py-0.5 rounded border-2 border-fg bg-card hover:bg-accent hover:text-accent-fg text-[11px] font-bold flex items-center gap-1"
-                                title="Konfirmasi kelas & langsung masukkan dataset terverifikasi"
-                              >
-                                <Plus className="w-3 h-3" /> Data Latih
-                              </button>
-                            ))}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              ) : (
-                <tr>
-                  <td colSpan={7} className="py-8 text-center text-muted-fg">
-                    Tidak ada log inferensi yang sesuai filter.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                            {log.foto_cuplikan &&
+                              (alreadyPromoted ? (
+                                <Badge variant="green" className="text-[10px]">
+                                  <Check className="w-3 h-3 inline mr-0.5" /> Masuk Dataset
+                                </Badge>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => openPromoteModal(log)}
+                                  disabled={submittingLogId === log.id}
+                                  className="px-2 py-0.5 rounded border-2 border-fg bg-card hover:bg-admin hover:text-white text-[11px] font-bold flex items-center gap-1"
+                                  title="Konfirmasi kelas & langsung masukkan dataset terverifikasi"
+                                >
+                                  <Plus className="w-3 h-3" /> Data Latih
+                                </button>
+                              ))}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan={7} className="py-8 text-center text-muted-fg">
+                      Tidak ada log inferensi yang sesuai filter.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Pagination Footer */}
@@ -450,7 +456,7 @@ export function TabLogInferensi({
               </div>
               <div>
                 <span className="text-muted-fg block">Prediksi AI:</span>
-                <span className="font-bold text-accent">
+                <span className="font-bold text-admin">
                   {selectedLog.kelas_prediksi?.nama || selectedLog.prediksi_kelas_id}
                 </span>
               </div>
@@ -468,6 +474,7 @@ export function TabLogInferensi({
               </Button>
               {selectedLog.foto_cuplikan && !selectedLog.sudah_jadi_sampel && (
                 <Button
+                  variant="admin"
                   onClick={() => {
                     const target = selectedLog;
                     setSelectedLog(null);
@@ -535,6 +542,7 @@ export function TabLogInferensi({
                 Batal
               </Button>
               <Button
+                variant="admin"
                 onClick={handleConfirmPromote}
                 disabled={submittingLogId === promoteLog.id || !promoteKelasId}
                 className="font-bold"

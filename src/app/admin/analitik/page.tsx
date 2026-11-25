@@ -241,7 +241,7 @@ export default function AdminAnalitikPage() {
         </div>
 
         <div className="overflow-x-auto border-2 border-fg rounded-md">
-          <table className="w-full text-[13px]">
+          <table className="w-full min-w-[760px] text-[13px]">
             <thead>
               <tr className="bg-muted border-b-2 border-fg text-left font-heading text-[10px] uppercase text-muted-fg">
                 <th className="p-3 text-center w-14">Rank</th>

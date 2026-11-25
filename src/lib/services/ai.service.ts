@@ -363,10 +363,11 @@ export const aiService = {
       kategori?: string;
       barcode?: string;
       target_foto?: number;
+      buat_produk_master?: boolean;
     },
     prefix: 'owner' | 'admin' = 'admin'
-  ): Promise<AIKelas> {
-    return api.post<AIKelas>(`/${prefix}/ai/kelas`, payload);
+  ): Promise<AIKelas & { produk_master_status?: 'created' | 'linked' }> {
+    return api.post<AIKelas & { produk_master_status?: 'created' | 'linked' }>(`/${prefix}/ai/kelas`, payload);
   },
 
   updateKelas(

@@ -361,7 +361,7 @@ export function TestingSandbox({ model, threshold = 0.75 }: TestingSandboxProps)
         <div>
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="font-heading font-bold text-base flex items-center gap-2">
-              <Play className="w-4 h-4 text-accent" /> Realtime Testing Sandbox (TFJS Browser)
+              <Play className="w-4 h-4 text-admin" /> Realtime Testing Sandbox (TFJS Browser)
             </h3>
             {model ? (
               <Badge variant={model.aktif ? "green" : "purple"}>
@@ -409,7 +409,7 @@ export function TestingSandbox({ model, threshold = 0.75 }: TestingSandboxProps)
               type="button"
               onClick={() => handleModeChange("camera")}
               className={`px-3 py-1 text-xs font-bold rounded flex items-center gap-1.5 transition-colors ${
-                mode === "camera" ? "bg-accent text-accent-fg shadow-sm" : "text-muted-fg hover:text-fg"
+                mode === "camera" ? "bg-admin text-white shadow-sm" : "text-muted-fg hover:text-fg"
               }`}
             >
               <Camera className="w-3.5 h-3.5" /> Kamera Live
@@ -418,7 +418,7 @@ export function TestingSandbox({ model, threshold = 0.75 }: TestingSandboxProps)
               type="button"
               onClick={() => handleModeChange("upload")}
               className={`px-3 py-1 text-xs font-bold rounded flex items-center gap-1.5 transition-colors ${
-                mode === "upload" ? "bg-accent text-accent-fg shadow-sm" : "text-muted-fg hover:text-fg"
+                mode === "upload" ? "bg-admin text-white shadow-sm" : "text-muted-fg hover:text-fg"
               }`}
             >
               <Upload className="w-3.5 h-3.5" /> Upload Foto
@@ -493,7 +493,7 @@ export function TestingSandbox({ model, threshold = 0.75 }: TestingSandboxProps)
                   />
                 ) : (
                   <label className="cursor-pointer text-center p-6 space-y-2 text-slate-400 hover:text-slate-200">
-                    <UploadCloud className="w-10 h-10 mx-auto text-accent" />
+                    <UploadCloud className="w-10 h-10 mx-auto text-admin" />
                     <p className="text-xs font-bold text-slate-200">Pilih foto kemasan produk untuk uji inferensi</p>
                     <p className="text-[10px] text-slate-500 font-mono">JPG, PNG, WEBP (Maks 5MB)</p>
                     <input type="file" accept="image/*" onChange={handleFileUpload} className="hidden" />
@@ -563,7 +563,7 @@ export function TestingSandbox({ model, threshold = 0.75 }: TestingSandboxProps)
             <Button
               type="button"
               onClick={toggleWebcam}
-              variant={camStatus === "active" || camStatus === "starting" ? "outline" : "primary"}
+              variant={camStatus === "active" || camStatus === "starting" ? "outline" : "admin"}
               className="w-full font-bold"
             >
               {camStatus === "active" || camStatus === "starting" ? (

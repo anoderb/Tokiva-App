@@ -49,7 +49,7 @@ export function TabDatasetMaster({ kelasList, totalSampel, hfStats, onRefresh }:
               </a>
             )}
 
-            <Button type="button" onClick={() => vm.handleSyncHuggingFace()} disabled={vm.isSyncingHf} className="text-xs font-bold">
+            <Button type="button" variant="admin" onClick={() => vm.handleSyncHuggingFace()} disabled={vm.isSyncingHf} className="text-xs font-bold">
               {vm.isSyncingHf ? (
                 <>
                   <RefreshCw className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Menyinkronkan...
@@ -85,12 +85,12 @@ export function TabDatasetMaster({ kelasList, totalSampel, hfStats, onRefresh }:
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-3 border-b-2 border-border pb-2">
-        <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-border pb-2">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
           <button
             type="button"
             onClick={() => vm.setSubTab("classes")}
-            className={`px-3 py-1.5 rounded-md border-2 border-fg text-xs font-bold transition-all ${vm.subTab === "classes" ? "bg-accent text-accent-fg shadow-pop-soft" : "bg-card text-muted-fg hover:text-fg"
+            className={`px-3 py-1.5 rounded-md border-2 border-fg text-xs font-bold whitespace-nowrap transition-all ${vm.subTab === "classes" ? "bg-admin text-white shadow-pop-soft" : "bg-card text-muted-fg hover:text-fg"
               }`}
           >
             <FolderKanban className="w-3.5 h-3.5 inline mr-1.5" />
@@ -99,7 +99,7 @@ export function TabDatasetMaster({ kelasList, totalSampel, hfStats, onRefresh }:
           <button
             type="button"
             onClick={() => vm.setSubTab("unmapped")}
-            className={`px-3 py-1.5 rounded-md border-2 border-fg text-xs font-bold transition-all ${vm.subTab === "unmapped" ? "bg-accent text-accent-fg shadow-pop-soft" : "bg-card text-muted-fg hover:text-fg"
+            className={`px-3 py-1.5 rounded-md border-2 border-fg text-xs font-bold whitespace-nowrap transition-all ${vm.subTab === "unmapped" ? "bg-admin text-white shadow-pop-soft" : "bg-card text-muted-fg hover:text-fg"
               }`}
           >
             <ShoppingBag className="w-3.5 h-3.5 inline mr-1.5" />
@@ -110,12 +110,14 @@ export function TabDatasetMaster({ kelasList, totalSampel, hfStats, onRefresh }:
         {vm.subTab === "classes" && (
           <Button
             size="sm"
+            variant="admin"
             onClick={() => {
               vm.setModalMode("new_class");
               vm.setSelectedClassForUpload(null);
               vm.setFormNama("");
               vm.setFormBarcode("");
               vm.setSelectedFiles([]);
+              vm.setCreateMasterCatalog(false);
               vm.setAddModalOpen(true);
             }}
             className="text-xs font-bold"
@@ -213,14 +215,19 @@ export function TabDatasetMaster({ kelasList, totalSampel, hfStats, onRefresh }:
         formTargetFoto={vm.formTargetFoto}
         selectedFiles={vm.selectedFiles}
         autoVerifyAdminUpload={vm.autoVerifyAdminUpload}
+        createMasterCatalog={vm.createMasterCatalog}
         submitting={vm.submitting}
-        onCloseAddModal={() => vm.setAddModalOpen(false)}
+        onCloseAddModal={() => {
+          vm.setCreateMasterCatalog(false);
+          vm.setAddModalOpen(false);
+        }}
         onChangeFormNama={vm.setFormNama}
         onChangeFormKategori={vm.setFormKategori}
         onChangeFormBarcode={vm.setFormBarcode}
         onChangeFormTargetFoto={vm.setFormTargetFoto}
         onChangeSelectedFiles={vm.setSelectedFiles}
         onChangeAutoVerify={vm.setAutoVerifyAdminUpload}
+        onChangeCreateMasterCatalog={vm.setCreateMasterCatalog}
         onOpenFormScanner={() => vm.setFormScannerOpen(true)}
         onUploadSubmit={vm.handleUploadSubmit}
         editModalOpen={vm.editModalOpen}

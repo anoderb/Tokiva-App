@@ -39,6 +39,7 @@ export function useDatasetMaster({ kelasList, onRefresh }: { kelasList: AIKelas[
   const [formTargetFoto, setFormTargetFoto] = useState(200);
   const [selectedFiles, setSelectedFiles] = useState<DatasetPhotoItem[]>([]);
   const [autoVerifyAdminUpload, setAutoVerifyAdminUpload] = useState(true);
+  const [createMasterCatalog, setCreateMasterCatalog] = useState(false);
 
   const [galleryModalOpen, setGalleryModalOpen] = useState(false);
   const [galleryClass, setGalleryClass] = useState<AIKelas | null>(null);
@@ -204,11 +205,23 @@ export function useDatasetMaster({ kelasList, onRefresh }: { kelasList: AIKelas[
       setSubmitting(true);
       try {
         const newCls = await aiService.createKelas(
-          { nama: formNama.trim(), kategori: formKategori, barcode: formBarcode.trim() || undefined, target_foto: formTargetFoto },
+          {
+            nama: formNama.trim(),
+            kategori: formKategori,
+            barcode: formBarcode.trim() || undefined,
+            target_foto: formTargetFoto,
+            buat_produk_master: createMasterCatalog,
+          },
           "admin"
         );
         targetClassId = newCls.id;
-        toast.success(`Kelas "${newCls.nama}" berhasil dibuat!`);
+        if (newCls.produk_master_status === "created") {
+          toast.success(`Kelas "${newCls.nama}" dibuat & ditambahkan ke Katalog Produk Master!`);
+        } else if (newCls.produk_master_status === "linked") {
+          toast.success(`Kelas "${newCls.nama}" dibuat & ditautkan ke Katalog Produk Master yang sudah ada!`);
+        } else {
+          toast.success(`Kelas "${newCls.nama}" berhasil dibuat!`);
+        }
       } catch (err: any) {
         toast.error(err?.message || "Gagal membuat kelas baru");
         setSubmitting(false);
@@ -236,6 +249,7 @@ export function useDatasetMaster({ kelasList, onRefresh }: { kelasList: AIKelas[
             : `${res.jumlah_berhasil || selectedFiles.length} foto diunggah ke antrean validasi.`
         );
         setSelectedFiles([]);
+        setCreateMasterCatalog(false);
         setAddModalOpen(false);
         onRefresh();
       } catch (err: any) {
@@ -244,6 +258,7 @@ export function useDatasetMaster({ kelasList, onRefresh }: { kelasList: AIKelas[
         setSubmitting(false);
       }
     } else {
+      setCreateMasterCatalog(false);
       setAddModalOpen(false);
       onRefresh();
       setSubmitting(false);
@@ -297,7 +312,8 @@ export function useDatasetMaster({ kelasList, onRefresh }: { kelasList: AIKelas[
     newClassNameInMap, setNewClassNameInMap, searchScannerOpen, setSearchScannerOpen, formScannerOpen, setFormScannerOpen,
     addModalOpen, setAddModalOpen, modalMode, setModalMode, selectedClassForUpload, setSelectedClassForUpload,
     formNama, setFormNama, formKategori, setFormKategori, formBarcode, setFormBarcode, formTargetFoto, setFormTargetFoto,
-    selectedFiles, setSelectedFiles, autoVerifyAdminUpload, setAutoVerifyAdminUpload, galleryModalOpen, setGalleryModalOpen,
+    selectedFiles, setSelectedFiles, autoVerifyAdminUpload, setAutoVerifyAdminUpload,
+    createMasterCatalog, setCreateMasterCatalog, galleryModalOpen, setGalleryModalOpen,
     galleryClass, galleryPhotos, loadingGallery, galleryFilter, setGalleryFilter, galleryPage, setGalleryPage,
     galleryPageSize, setGalleryPageSize, galleryTotal, galleryTotalPages, selectedPhotoIds, setSelectedPhotoIds,
     lightboxPhoto, setLightboxPhoto, editModalOpen, setEditModalOpen, editingKelas, setEditingKelas,

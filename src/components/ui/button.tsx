@@ -2,11 +2,12 @@ import { cn } from "@/lib/cn";
 import { type LucideIcon } from "lucide-react";
 import Link from "next/link";
 
-type Variant = "primary" | "outline" | "ghost" | "danger";
+type Variant = "primary" | "admin" | "outline" | "ghost" | "danger";
 type Size = "sm" | "md";
 
 const v: Record<Variant, string> = {
   primary: "bg-accent text-accent-fg border-fg shadow-pop hover:shadow-pop-hover",
+  admin:   "bg-admin hover:bg-purple-700 text-white border-fg shadow-pop hover:shadow-pop-hover",
   outline: "bg-card text-fg border-fg hover:bg-tertiary hover:shadow-pop",
   ghost:   "bg-transparent text-muted-fg border-transparent hover:bg-muted hover:text-fg",
   danger:  "bg-red-600 text-white border-fg shadow-pop hover:shadow-pop-hover",

@@ -19,6 +19,7 @@ export function DatasetModals({
   formTargetFoto,
   selectedFiles,
   autoVerifyAdminUpload,
+  createMasterCatalog,
   submitting,
   onCloseAddModal,
   onChangeFormNama,
@@ -27,6 +28,7 @@ export function DatasetModals({
   onChangeFormTargetFoto,
   onChangeSelectedFiles,
   onChangeAutoVerify,
+  onChangeCreateMasterCatalog,
   onOpenFormScanner,
   onUploadSubmit,
   editModalOpen,
@@ -63,6 +65,7 @@ export function DatasetModals({
   formTargetFoto: number;
   selectedFiles: DatasetPhotoItem[];
   autoVerifyAdminUpload: boolean;
+  createMasterCatalog: boolean;
   submitting: boolean;
   onCloseAddModal: () => void;
   onChangeFormNama: (v: string) => void;
@@ -71,6 +74,7 @@ export function DatasetModals({
   onChangeFormTargetFoto: (v: number) => void;
   onChangeSelectedFiles: React.Dispatch<React.SetStateAction<DatasetPhotoItem[]>>;
   onChangeAutoVerify: (v: boolean) => void;
+  onChangeCreateMasterCatalog: (v: boolean) => void;
   onOpenFormScanner: () => void;
   onUploadSubmit: () => void;
   editModalOpen: boolean;
@@ -135,14 +139,26 @@ export function DatasetModals({
 
           <DatasetPhotoStudio active={addModalOpen} items={selectedFiles} onChangeItems={onChangeSelectedFiles} videoFrameCount={15} burstIntervalMs={1000} />
 
-          <label className="flex items-center gap-2 p-2.5 rounded-md border-2 border-fg bg-lime-50/40 dark:bg-lime-950/20 cursor-pointer text-[11px] font-semibold">
-            <input type="checkbox" checked={autoVerifyAdminUpload} onChange={(e) => onChangeAutoVerify(e.target.checked)} className="w-4 h-4 accent-accent" />
+          {modalMode === "new_class" && (
+            <label className="flex items-center gap-2 p-2.5 rounded-md border-2 border-fg bg-purple-50/40 dark:bg-purple-950/20 cursor-pointer text-[11px] font-semibold">
+              <input
+                type="checkbox"
+                checked={createMasterCatalog}
+                onChange={(e) => onChangeCreateMasterCatalog(e.target.checked)}
+                className="w-4 h-4 accent-admin"
+              />
+              <span>Sekaligus tambahkan ke Katalog Produk Master (tersedia untuk Adopsi Master Owner)</span>
+            </label>
+          )}
+
+          <label className="flex items-center gap-2 p-2.5 rounded-md border-2 border-fg bg-purple-50/40 dark:bg-purple-950/20 cursor-pointer text-[11px] font-semibold">
+            <input type="checkbox" checked={autoVerifyAdminUpload} onChange={(e) => onChangeAutoVerify(e.target.checked)} className="w-4 h-4 accent-admin" />
             <span>Langsung tandai terverifikasi (siap Sync ke Hugging Face tanpa masuk Tab Validasi lagi)</span>
           </label>
 
           <div className="pt-3 border-t border-border flex items-center justify-end gap-2">
             <Button type="button" variant="outline" onClick={onCloseAddModal}>Batal</Button>
-            <Button type="button" onClick={onUploadSubmit} disabled={submitting || (modalMode === "new_class" && !formNama.trim())} className="font-bold">
+            <Button type="button" variant="admin" onClick={onUploadSubmit} disabled={submitting || (modalMode === "new_class" && !formNama.trim())} className="font-bold">
               {submitting ? "Memproses..." : `Simpan & Upload (${selectedFiles.length} Foto)`}
             </Button>
           </div>
@@ -161,7 +177,7 @@ export function DatasetModals({
           </div>
           <div className="pt-3 border-t border-border flex justify-end gap-2">
             <Button variant="outline" onClick={onCloseEditModal}>Batal</Button>
-            <Button onClick={onSaveEditClass} disabled={submitting}>{submitting ? "Menyimpan..." : "Simpan Perubahan"}</Button>
+            <Button variant="admin" onClick={onSaveEditClass} disabled={submitting}>{submitting ? "Menyimpan..." : "Simpan Perubahan"}</Button>
           </div>
         </div>
       </Modal>
@@ -191,7 +207,7 @@ export function DatasetModals({
           </div>
           <div className="pt-3 border-t border-border flex justify-end gap-2">
             <Button variant="outline" onClick={onCloseMappingModal}>Batal</Button>
-            <Button onClick={onMapProductSubmit} disabled={submitting}>{submitting ? "Memetakan..." : "Terapkan Pemetaan"}</Button>
+            <Button variant="admin" onClick={onMapProductSubmit} disabled={submitting}>{submitting ? "Memetakan..." : "Terapkan Pemetaan"}</Button>
           </div>
         </div>
       </Modal>

@@ -56,7 +56,7 @@ export function DatasetKelasGrid({
           <span className="text-muted-fg text-[11px] font-bold mr-1">Kuota:</span>
           {(
             [
-              { id: "all", label: "Semua", activeClass: "bg-accent text-accent-fg" },
+              { id: "all", label: "Semua", activeClass: "bg-admin text-white" },
               { id: "low", label: "< 50%", activeClass: "bg-amber-100 text-amber-800" },
               { id: "medium", label: "50-99%", activeClass: "bg-sky-100 text-sky-800" },
               { id: "complete", label: "≥ 100%", activeClass: "bg-lime-100 text-lime-800" },
@@ -87,7 +87,7 @@ export function DatasetKelasGrid({
           return (
             <div
               key={cls.id}
-              className="p-4 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-3 flex flex-col justify-between group hover:border-accent transition-colors"
+              className="p-4 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-3 flex flex-col justify-between group hover:border-admin transition-colors"
             >
               <div className="space-y-2">
                 <div className="flex items-start gap-3">
@@ -140,7 +140,7 @@ export function DatasetKelasGrid({
                   <button
                     type="button"
                     onClick={() => onOpenAddSamples(cls)}
-                    className="px-2 py-1 rounded border-2 border-fg bg-accent text-accent-fg text-[11px] font-bold hover:brightness-95 flex items-center gap-1"
+                    className="px-2 py-1 rounded border-2 border-fg bg-admin text-white text-[11px] font-bold hover:brightness-95 flex items-center gap-1"
                   >
                     <Plus className="w-3 h-3" /> Foto
                   </button>

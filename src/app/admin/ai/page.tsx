@@ -157,7 +157,7 @@ function AdminAIManagementContent() {
         <div className="p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-accent animate-pulse" />
+              <span className="w-3 h-3 rounded-full bg-admin animate-pulse" />
               <h2 className="font-heading font-black text-xl tracking-tight">
                 Pusat Kendali Model TFJS &amp; Dataset Hugging Face
               </h2>
@@ -192,7 +192,7 @@ function AdminAIManagementContent() {
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-3.5 py-2 rounded-md border-2 border-fg text-xs font-bold shrink-0 flex items-center gap-2 transition-all ${isActive
-                    ? "bg-accent text-accent-fg shadow-pop-soft"
+                    ? "bg-admin text-white shadow-pop-soft"
                     : "bg-card text-muted-fg hover:text-fg hover:bg-muted"
                   }`}
               >
@@ -201,7 +201,7 @@ function AdminAIManagementContent() {
                 {tab.count !== undefined && (
                   <span
                     className={`px-1.5 py-0.2 rounded text-[10px] font-mono border ${isActive
-                        ? "bg-black/20 text-accent-fg border-black/30"
+                        ? "bg-black/20 text-white border-black/30"
                         : "bg-muted text-muted-fg border-border"
                       }`}
                   >
@@ -216,7 +216,7 @@ function AdminAIManagementContent() {
         {/* Tab Content Display */}
         {loading && (
           <div className="p-4 rounded-md border-2 border-fg bg-muted/40 text-xs flex items-center justify-center gap-2">
-            <RefreshCw className="w-4 h-4 animate-spin text-accent" />
+            <RefreshCw className="w-4 h-4 animate-spin text-admin" />
             <span className="font-semibold">Menghubungkan ke backend dan memuat repositori AI...</span>
           </div>
         )}

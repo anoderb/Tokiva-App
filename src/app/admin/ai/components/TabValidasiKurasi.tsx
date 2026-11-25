@@ -177,7 +177,7 @@ export function TabValidasiKurasi({
       <div className="p-4 sm:p-5 rounded-lg border-2 border-fg bg-card shadow-pop-soft space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <CheckSquare className="w-5 h-5 text-accent" />
+            <CheckSquare className="w-5 h-5 text-admin" />
             <h4 className="font-heading font-bold text-base">
               Inbox Validasi Kualitas &amp; Kurasi Sampel Masuk
             </h4>
@@ -210,7 +210,7 @@ export function TabValidasiKurasi({
                 setPage(1);
               }}
               className={`px-2 py-0.5 rounded font-bold text-[11px] ${
-                statusFilter === "menunggu" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
+                statusFilter === "menunggu" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
               }`}
             >
               Menunggu Kurasi
@@ -236,7 +236,7 @@ export function TabValidasiKurasi({
                 setPage(1);
               }}
               className={`px-2 py-0.5 rounded font-bold text-[11px] ${
-                statusFilter === "semua" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
+                statusFilter === "semua" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
               }`}
             >
               Semua
@@ -253,7 +253,7 @@ export function TabValidasiKurasi({
                 setPage(1);
               }}
               className={`px-2 py-0.5 rounded font-bold text-[11px] ${
-                sourceFilter === "semua" ? "bg-accent text-accent-fg" : "text-muted-fg hover:text-fg"
+                sourceFilter === "semua" ? "bg-admin text-white" : "text-muted-fg hover:text-fg"
               }`}
             >
               Semua
@@ -397,7 +397,7 @@ export function TabValidasiKurasi({
                 <div
                   key={s.id}
                   className={`p-2.5 rounded-lg border-2 bg-card space-y-2 flex flex-col justify-between transition-all ${
-                    isSelected ? "border-accent ring-2 ring-accent shadow-pop-soft" : "border-fg hover:border-accent"
+                    isSelected ? "border-admin ring-2 ring-admin shadow-pop-soft" : "border-fg hover:border-admin"
                   }`}
                 >
                   <div className="space-y-1.5">
@@ -592,7 +592,7 @@ export function TabValidasiKurasi({
             <Button variant="outline" onClick={() => setChangeClassModalOpen(false)}>
               Batal
             </Button>
-            <Button onClick={handleChangeClassSubmit} disabled={submitting}>
+            <Button variant="admin" onClick={handleChangeClassSubmit} disabled={submitting}>
               {submitting ? "Memindahkan..." : "Simpan Perubahan"}
             </Button>
           </div>
